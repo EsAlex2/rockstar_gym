@@ -9,6 +9,7 @@ class rolesModel extends Model
     protected $pdo;
     protected string $nombre_rol;
     protected string $descripcion;
+    protected array $mensajes = [];
 
     public function __construct($pdo)
     {
@@ -18,16 +19,25 @@ class rolesModel extends Model
 
     public function obtenerRoles()
     {
+        $this->mensajes = [
+            "error_conexion" => "Error de conexión a la base de datos",
+            "error_obtener_roles" => "Error al obtener los roles",
+            "error_obtener_rol" => "Error al obtener el rol {nombre_rol}: El rol no existe.",
+            "error_crear_rol" => "Error al crear el rol: {nombre_rol}",
+            "error_actualizar_rol" => "Error al actualizar el rol: {nombre_rol}",
+            "success_crear_rol" => "Rol creado exitosamente",
+            "success_actualizar_rol" => "Rol actualizado exitosamente"
+        ];
         try {
             if (!$this->pdo) {
-                return json_encode(["error" => "Error de conexión a la base de datos"]);
+                return $this->mensajes["error_conexion"];
             }
 
             $stmt = $this->pdo->prepare("SELECT nombre_rol, descripcion FROM administracion.roles");
             $stmt->execute();
             return json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         } catch (PDOException $e) {
-            return json_encode(["error" => "Error al obtener los roles: " . $e->getMessage()]);
+            return $this->mensajes["error_obtener_roles"] . $e->getMessage();
         }
     }
 
@@ -35,7 +45,7 @@ class rolesModel extends Model
     {
         try {
             if (!$this->pdo) {
-                return json_encode(["error" => "Error de conexión a la base de datos"]);
+                return $this->mensajes["error_conexion"];
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE nombre_rol = :nombre_rol");
@@ -43,7 +53,7 @@ class rolesModel extends Model
             $checkStmt->execute();
             
             if ($checkStmt->fetchColumn() == 0) {
-                return json_encode(["error" => "El rol no existe"]);
+                return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes["error_obtener_rol"]);
             }
 
             $stmt = $this->pdo->prepare("SELECT id, nombre_rol, descripcion FROM administracion.roles WHERE nombre_rol = :nombre_rol");
@@ -51,7 +61,7 @@ class rolesModel extends Model
             $stmt->execute();
             return json_encode($stmt->fetch(PDO::FETCH_ASSOC));
         } catch (PDOException $e) {
-            return json_encode(["error" => "Error al obtener el rol: " . $e->getMessage()]);
+            return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes["error_obtener_rol"]) . $e->getMessage();
         }
     }
 
@@ -59,27 +69,27 @@ class rolesModel extends Model
     {
         try {
             if (!$this->pdo) {
-                return json_encode(["error" => "Error de conexión a la base de datos"]);
+                return $this->mensajes["error_conexion"];
             }
 
             if (!isset($nombre_rol) || empty($nombre_rol) || !isset($descripcion) || empty($descripcion)) {
-                return json_encode(["error" => "El nombre del rol y la descripción no pueden estar vacíos"]);
+                return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes["error_crear_rol"]) . ": El nombre del rol y la descripción son obligatorios.";
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE nombre_rol = :nombre_rol");
             $checkStmt->bindParam(':nombre_rol', $nombre_rol);
             $checkStmt->execute();
             if ($checkStmt->fetchColumn() > 0) {
-                return json_encode(["error" => "El rol ya existe"]);
+                return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes["error_crear_rol"]) . ": El nombre del rol ya existe.";
             }
 
             $stmt = $this->pdo->prepare("INSERT INTO administracion.roles (nombre_rol, descripcion) VALUES (:nombre_rol, :descripcion)");
             $stmt->bindParam(':nombre_rol', $nombre_rol);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->execute();
-            return json_encode(["success" => "Rol creado exitosamente"]);
+            return $this->mensajes["success_crear_rol"];
         } catch (PDOException $e) {
-            return json_encode(["error" => "Error al crear el rol: " . $e->getMessage()]);
+            return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes["error_crear_rol"]) . ": " . $e->getMessage();
         }
     }
 
@@ -87,7 +97,7 @@ class rolesModel extends Model
     {
         try {
             if (!$this->pdo) {
-                return json_encode(["error" => "Error de conexión a la base de datos"]);
+                return $this->mensajes["error_conexion"];
             }
 
             $stmt = $this->pdo->prepare("UPDATE administracion.roles SET nombre_rol = :nombre_rol, descripcion = :descripcion WHERE id = :id");
@@ -95,9 +105,9 @@ class rolesModel extends Model
             $stmt->bindParam(':nombre_rol', $nombre_rol);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->execute();
-            return json_encode(["success" => "Rol actualizado exitosamente"]);
+            return $this->mensajes["success_actualizar_rol"];
         } catch (PDOException $e) {
-            return json_encode(["error" => "Error al actualizar el rol: " . $e->getMessage()]);
+            return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes["error_actualizar_rol"]) . ": " . $e->getMessage();
         }
     }
 }
@@ -107,4 +117,4 @@ echo $rolesModel->obtenerRoles();
 
 echo "<hr>";
 
-echo $rolesModel->obtenerRolPorNombre('Administrado');
+echo $rolesModel->obtenerRolPorNombre('Cliete');

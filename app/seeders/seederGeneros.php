@@ -26,3 +26,6 @@ class seederGeneros extends Seeder
         }
     }
 }
+
+$generosSeeder = new seederGeneros($pdo);
+$generosSeeder->runSeeder();
