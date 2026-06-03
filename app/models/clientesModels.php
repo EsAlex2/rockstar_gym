@@ -33,7 +33,7 @@ class clientesModel extends Model
                 return $this->mensajes[0];
             }
 
-            
+            $stmt = $this->pdo->prepare("SELECT id, id_estatus");
 
         } catch (PDOException $e) {
             return $this->mensajes[1] . ": " . $e->getMessage();
