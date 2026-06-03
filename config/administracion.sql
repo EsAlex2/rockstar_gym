@@ -46,7 +46,7 @@ CREATE TABLE administracion.sedes (
     id SERIAL PRIMARY KEY,
     estado VARCHAR(100) NOT NULL,
     municipio VARCHAR(100) NOT NULL,
-    sede VARCHAR(50) NOT NULL,
+    sede VARCHAR(100) NOT NULL,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP
 );

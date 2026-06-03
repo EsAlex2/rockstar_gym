@@ -101,7 +101,5 @@ class SeederBancos extends Seeder
                 ':descripcion' => $banco['descripcion']
             ]);
         }
-
-        echo "Bancos seeders ejecutados correctamente.";
     }
 }

@@ -117,10 +117,5 @@ class SeederPermisos extends Seeder
                 ':descripcion' => $permiso['descripcion']
             ]);
         }
-
-        echo "Permisos seeders ejecutados correctamente.";
     }
 }
-
-$seederPermisos = new SeederPermisos($pdo);
-$seederPermisos->runSeeder();

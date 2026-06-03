@@ -9,4 +9,8 @@ require_once __DIR__ . '/../core/conn.php';
             global $pdo;
             $this->pdo = $pdo;
         }
+
+        public function addLogs(){
+            
+        }
     }

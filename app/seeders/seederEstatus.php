@@ -50,11 +50,5 @@ class SeederEstatus extends Seeder
                 ':descripcion' => $estatus['descripcion']
             ]);
         }
-
-        echo "Estatus seeders ejecutados correctamente.";
     }
 }
-
-    // Ejecutar el seeder
-    $seeder = new SeederEstatus($pdo);
-    $seeder->runSeeder();

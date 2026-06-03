@@ -26,10 +26,5 @@ require_once __DIR__ . '/../core/conn.php';
                     ':descripcion' => $rol['descripcion']
                 ]);
             }
-
-            echo "Seeders de Roles ejecutados correctamente.";
         }
     }
-
-// $seederRoles = new SeederRoles($pdo);
-// $seederRoles->runSeeder();
