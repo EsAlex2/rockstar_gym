@@ -98,7 +98,7 @@ class personasModel extends Model
             }
 
             // Se corrige el SELECT aquí también para recuperar el ID de la persona
-            $stmt = $this->pdo->prepare("SELECT a.id AS id_persona, a.id_genero, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
+            $stmt = $this->pdo->prepare("SELECT a.id AS id_persona, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
                 FROM administracion.personas a 
                 INNER JOIN administracion.generos b 
                 ON a.id_genero = b.id
@@ -125,8 +125,6 @@ class personasModel extends Model
                 return $this->mensajes[0];
             }
 
-            $fecha_nacimiento = date('Y-m-d', strtotime($fecha_nacimiento));
-
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE cedula_identidad = :cedula");
             $checkStmt->bindParam(':cedula', $cedula);
             $checkStmt->execute();
@@ -141,9 +139,11 @@ class personasModel extends Model
             $datos_personales = array_map('trim', $datos_personales);
             $datos_personales = str_replace($caracteresEspeciales, $reemplazos, $datos_personales);
 
+            $estatus_id = 2;
+
             $stmt = $this->pdo->prepare("INSERT INTO administracion.personas (id_genero, id_estatus, cedula_identidad, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion_habitacion) VALUES (:genero_id, :estatus_id, :cedula, :primer_nombre, :segundo_nombre, :primer_apellido, :segundo_apellido, :fecha_nacimiento, :telefono, :email, :direccion)");
             $stmt->bindParam(':genero_id', $genero_id);
-            $stmt->bindParam(':estatus_id', 2);
+            $stmt->bindParam(':estatus_id', $estatus_id);
             $stmt->bindParam(':cedula', $cedula);
             $stmt->bindParam(':primer_nombre', $datos_personales[0]);
             $stmt->bindParam(':segundo_nombre', $datos_personales[1]);
@@ -165,11 +165,12 @@ class personasModel extends Model
 
     public function actualizarPersona(int $genero_id, int $estatus_id, string $cedula, string $primer_nombre, string $segundo_nombre, string $primer_apellido, string $segundo_apellido, string $fecha_nacimiento, string $telefono, string $correo_electronico, string $direccion)
     {
+            
         $this->mensajes = [
             "Error de conexion a la base de datos",
-            "No se encontró la persona con cédula: {cedula} en la base de datos",
-            "Error inesperado para actualizar la persona con cédula {cedula}",
-            "La persona con cédula {cedula} se ha actualizado correctamente"
+            "No se encontró la persona con cédula: {$cedula} en la base de datos",
+            "Error inesperado para actualizar la persona con cédula {$cedula}: ",
+            "La persona con cedula {$cedula} se ha actualizado correctamente"
         ];
 
         try {
@@ -177,7 +178,7 @@ class personasModel extends Model
                 return $this->mensajes[0];
             }
 
-            $fecha_nacimiento = date('Y-m-d', strtotime($fecha_nacimiento));
+            //$fecha_nacimiento = date('d-m-Y', strtotime($fecha_nacimiento));
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE cedula_identidad = :cedula");
             $checkStmt->bindParam(':cedula', $cedula);
@@ -198,7 +199,7 @@ class personasModel extends Model
             $datos_personales = array_map('trim', $datos_personales);
             $datos_personales = str_replace($caracteresEspeciales, $reemplazos, $datos_personales);
 
-            $stmt = $this->pdo->prepare("UPDATE administracion.personas SET id_genero = :genero_id, id_estatus = :estatus_id, primer_nombre = :primer_nombre, segundo_nombre = :segundo_nombre, primer_apellido = :primer_apellido, segundo_apellido = :segundo_apellido, fecha_nacimiento = :fecha_nacimiento, telefono = :telefono, email = :email, direccion_habitacion = :direccion_habitacion WHERE cedula_identidad = :cedula");
+            $stmt = $this->pdo->prepare("UPDATE administracion.personas SET id_genero = :genero_id, id_estatus = :estatus_id, primer_nombre = :primer_nombre, segundo_nombre = :segundo_nombre, primer_apellido = :primer_apellido, segundo_apellido = :segundo_apellido, fecha_nacimiento = :fecha_nacimiento, telefono = :telefono, email = :email, direccion_habitacion = :direccion_habitacion, actualizado_en = now() WHERE cedula_identidad = :cedula");
             $stmt->bindParam(':genero_id', $genero_id);
             $stmt->bindParam(':estatus_id', $estatus_id);
             $stmt->bindParam(':cedula', $cedula);
@@ -209,12 +210,23 @@ class personasModel extends Model
             $stmt->bindParam(':fecha_nacimiento', $fecha_nacimiento);
             $stmt->bindParam(':telefono', $telefono);
             $stmt->bindParam(':email', $correo_electronico);
-            $stmt->bindParam(':direccion', $direccion);
+            $stmt->bindParam(':direccion_habitacion', $direccion);
+
             $stmt->execute();
 
-            return str_replace("{cedula}", $cedula, $this->mensajes[3]);
+            return json_encode([
+                "success" => $this->mensajes[3]
+            ]);
         } catch (PDOException $e) {
             return $this->mensajes[2] . $e->getMessage();
         }
     }
 }
+
+$pruebas = new personasModel($pdo);
+//echo $pruebas->crearPersona(1, "27391753", "Alex", "Jonfranc", "Madrid", "Marin", 28/01/1999, "04143770143", "alexmadrid326@gmail.com", "palo verde, jose felix ribas");
+
+
+//echo $pruebas->actualizarPersona(1, 1, "27391753", "Álex", "Jonfranc", "Madrid", "Marin", "28/01/1999", "04143770143", "alexmadrid326@gmail.com", "palo verde jose felix ribas");
+
+echo $pruebas->obtenerPersonaPorCedula("27391753");

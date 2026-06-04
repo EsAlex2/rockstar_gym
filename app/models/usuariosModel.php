@@ -37,10 +37,14 @@ class usuariosModels extends Model
             $sql = $this->pdo->prepare("SELECT id_estatus, id_persona, id_rol, username, email_user FROM administracion.usuarios");
             $sql->execute();
 
-            return json_encode($sql->fetchAll(PDO::FETCH_ASSOC));
+            return json_encode([
+                "success" => $sql->fetchAll(PDO::FETCH_ASSOC)
+            ]);
 
         } catch (PDOException $e) {
-            return $this->mensajes[1] . ": " . $e->getMessage();
+            return json_encode([
+                "error" => $this->mensajes[1] . $e->getMessage()
+            ]);
         }
     }
 
@@ -88,9 +92,16 @@ class usuariosModels extends Model
      */
     public function CreacionDeUsername(int $persona_id)
     {
+
+        $this->mensajes= [
+            "Error de conexión a la base de datos",
+            "No se encontró la persona asociada para generar el username",
+            "Error al generar el username: "
+        ];
+
         try {
             if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
+                return $this->mensajes[0];
             }
 
             $query = $this->pdo->prepare("SELECT primer_nombre, primer_apellido, cedula_identidad FROM administracion.personas WHERE id = :persona_id");
@@ -99,7 +110,7 @@ class usuariosModels extends Model
             $persona = $query->fetch(PDO::FETCH_ASSOC);
 
             if (!$persona) {
-                return ["error" => "No se encontró la persona asociada para generar el username"];
+                return $this->mensajes[1];
             }
 
             $apellido = strtolower(trim($persona['primer_apellido']));
@@ -130,7 +141,7 @@ class usuariosModels extends Model
             return ["success" => true, "username" => $username];
 
         } catch (PDOException $e) {
-            return ["error" => "Error al generar el username: " . $e->getMessage()];
+            return ["error" => $this->mensajes[2] . $e->getMessage()];
         }
     }
 
@@ -139,7 +150,7 @@ class usuariosModels extends Model
         $this->mensajes = [
             "Error de conexion a la base de datos",
             "Error inesperado al crear el usuario {username}",
-            "El usuario se ha creado exitosamente"
+            "El usuario {username} se ha creado exitosamente"
         ];
 
         try {
@@ -168,11 +179,55 @@ class usuariosModels extends Model
             $stmt->execute();
 
             return [
-                "message" => $this->mensajes[2],
                 "success" => json_encode(str_replace("{username}", $username_generado, $this->mensajes[2]))
             ];
         } catch (PDOException $e) {
-            return str_replace("{username}", $username_generado ?? 'desconocido', $this->mensajes[1]) . ": " . $e->getMessage();
+            return json_encode([
+                "error" => str_replace("{username}", $username_generado ?? 'desconocido', $this->mensajes[1]) . ": " . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function actualizarUsername(int $estatus_id, int $rol_id, string $username, string $email)
+    {
+        $this->mensajes = [
+            "Error de conexion a la base de datos",
+            "No se encontro usuario asociado a ese username: {username}",
+            "Error inesperado para actualizar al usuario: {username}", 
+            "Se ha actualizado el usuario Exitosamente!"
+        ];
+
+        try {
+
+            if(!$this->pdo){
+                return $this->mensajes[0];
+            }
+
+            $chekUserUpdate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
+            $chekUserUpdate->bindParam(':username', $username);
+            $chekUserUpdate->execute();
+
+            if($chekUserUpdate->fetchColumn() == 0){
+                return str_replace("{username}", $username, $this->mensajes[1]);
+            }
+
+            $updateUsers = $this->pdo->prepare("UPDATE administracion.usuarios 
+            SET id_estatus = :estatus, id_rol = :rol, username = :username, email_user = :email 
+            WHERE username = :username");
+
+            $updateUsers->bindParam(":estatus", $estatus_id);
+            $updateUsers->bindParam(":rol", $rol_id);
+            $updateUsers->bindParam("username", $username);
+            $updateUsers->bindParam(":email", $email);
+            $updateUsers->execute();
+
+            return json_encode([
+                "success" => $this->mensajes[3]
+            ]);
+        } catch (PDOException $e){
+            return json_encode([
+                "error" => $this->mensajes[2] . $e->getMessage()
+            ]);
         }
     }
 }
