@@ -142,6 +142,3 @@ class rolesModel extends Model
         }
     }
 }
-
-$rolesModel = new rolesModel($pdo);
-echo $rolesModel->obtenerRolPorNombre('');
