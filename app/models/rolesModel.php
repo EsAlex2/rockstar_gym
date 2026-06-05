@@ -17,6 +17,7 @@ require_once __DIR__ . '/../core/conn.php';
 class rolesModel extends Model
 {
     protected $pdo; 
+    protected int $id_rol;
     protected string $nombre_rol;
     protected string $descripcion;
     protected array $mensajes = [];
@@ -91,19 +92,21 @@ class rolesModel extends Model
                 return $this->mensajes[0];
             }
 
-            if (!isset($nombre_rol) || empty($nombre_rol) || !isset($descripcion) || empty($descripcion)) {
-                return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes[3]);
+            $roles_minusculas = strtolower($nombre_rol);
+
+            if (!isset($roles_minusculas) || empty($roles_minusculas) || !isset($descripcion) || empty($descripcion)) {
+                return str_replace('{nombre_rol}', $roles_minusculas, $this->mensajes[3]);
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE nombre_rol = :nombre_rol");
-            $checkStmt->bindParam(':nombre_rol', $nombre_rol);
+            $checkStmt->bindParam(':nombre_rol', $roles_minusculas);
             $checkStmt->execute();
             if ($checkStmt->fetchColumn() > 0) {
                 return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes[2]);
             }
 
             $stmt = $this->pdo->prepare("INSERT INTO administracion.roles (nombre_rol, descripcion) VALUES (:nombre_rol, :descripcion)");
-            $stmt->bindParam(':nombre_rol', $nombre_rol);
+            $stmt->bindParam(':nombre_rol', $roles_minusculas);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->execute();
             return $this->mensajes[4];
@@ -112,11 +115,11 @@ class rolesModel extends Model
         }
     }
 
-    public function actualizarRol(string $nombre_rol, string $descripcion)
+    public function actualizarRol(int $id_rol, string $nombre_rol, string $descripcion)
     {
         $this->mensajes = [
         'Error de conexion a la base de datos', 
-        'Error al actualizar el rol {nombre_rol}',
+        "El {$nombre_rol} no se en encuentra en la base de datos para actualizarse!",
         'Rol actualizado exitosamente'
         ];
         try {
@@ -124,16 +127,21 @@ class rolesModel extends Model
                 return $this->mensajes[0];
             }
 
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE nombre_rol = :nombre_rol");
-            $checkStmt->bindParam(':nombre_rol', $nombre_rol);
+            $rol_lower3 = strtolower($nombre_rol);
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id = :id_rol");
+            $checkStmt->bindParam(':id_rol', $id_rol);
             $checkStmt->execute();
 
             if ($checkStmt->fetchColumn() == 0) {
-                return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes[1]);
+                return str_replace('{nombre_rol}', $rol_lower3, $this->mensajes[1]);
             }
 
-            $stmt = $this->pdo->prepare("UPDATE administracion.roles SET nombre_rol = :nombre_rol, descripcion = :descripcion WHERE nombre_rol = :nombre_rol");
-            $stmt->bindParam(':nombre_rol', $nombre_rol);
+            $stmt = $this->pdo->prepare("UPDATE administracion.roles 
+            SET nombre_rol = :nombre_rol, descripcion = :descripcion, act_en = NOW()
+            WHERE id = :id_rol");
+            $stmt->bindParam(':id_rol', $id_rol);
+            $stmt->bindParam(':nombre_rol', $rol_lower3);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->execute();
             return $this->mensajes[2];
@@ -142,3 +150,16 @@ class rolesModel extends Model
         }
     }
 }
+
+$prueba3 = new rolesModel($pdo);
+
+//echo $prueba3->crearRol("MAS ROLES EN MAYUS", "estamos probando el sistema");
+
+echo "<hr>";
+
+echo $prueba3->actualizarRol(8, "MAS ROLES EN MAYssss", "otro");
+
+
+
+
+

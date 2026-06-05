@@ -224,9 +224,9 @@ class personasModel extends Model
 }
 
 $pruebas = new personasModel($pdo);
+
+
 //echo $pruebas->crearPersona(1, "27391753", "Alex", "Jonfranc", "Madrid", "Marin", 28/01/1999, "04143770143", "alexmadrid326@gmail.com", "palo verde, jose felix ribas");
-
-
 //echo $pruebas->actualizarPersona(1, 1, "27391753", "Álex", "Jonfranc", "Madrid", "Marin", "28/01/1999", "04143770143", "alexmadrid326@gmail.com", "palo verde jose felix ribas");
 
 echo $pruebas->obtenerPersonaPorCedula("27391753");
