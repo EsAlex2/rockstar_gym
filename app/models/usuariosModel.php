@@ -247,12 +247,12 @@ $prueba2 = new usuariosModels($pdo);
 
 //echo $prueba2->crearUsuarios(1, 1, "alexmadrid326@gmail.com", '');
 
-echo $prueba2->obtenerUsuarios();
+// echo $prueba2->obtenerUsuarios();
 
-echo "<hr>";
+// echo "<hr>";
 
-echo $prueba2->obtenerUsuariosPorUsername("madrida753");
+// echo $prueba2->obtenerUsuariosPorUsername("madrida753");
 
-echo "<hr>";
+// echo "<hr>";
 
 //echo $prueba2->actualizarUsername(1, 1, "madrida753", "alexmadrid326@gmail.com");

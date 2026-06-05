@@ -183,3 +183,12 @@ CREATE TABLE administracion.pagos (
     cod_referencia VARCHAR(40) UNIQUE NOT NULL,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- TABLA PARA REGISTRAR LOS LOGS DEL SISTEMA
+
+CREATE TABLE administracion.logs (
+    id SERIAL PRIMARY KEY,
+    id_usuario INTEGER REFERENCES administracion.usuarios(id) ON DELETE RESTRICT,
+    
+);
+

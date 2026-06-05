@@ -155,9 +155,9 @@ $prueba3 = new rolesModel($pdo);
 
 //echo $prueba3->crearRol("MAS ROLES EN MAYUS", "estamos probando el sistema");
 
-echo "<hr>";
+// echo "<hr>";
 
-echo $prueba3->actualizarRol(8, "MAS ROLES EN MAYssss", "otro");
+// echo $prueba3->actualizarRol(8, "MAS ROLES EN MAYssss", "otro");
 
 
 
