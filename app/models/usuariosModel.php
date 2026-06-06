@@ -106,8 +106,9 @@ class usuariosModels extends Model
 
         $this->mensajes = [
             "Error de conexión a la base de datos",
+            "Ya existe una persona a ese nombre de usuario",
             "No se encontró la persona asociada para generar el username",
-            "Error al generar el username: "
+            "Se ha creado el usuario exitosamente"
         ];
 
         try {
@@ -121,7 +122,7 @@ class usuariosModels extends Model
             $persona = $query->fetch(PDO::FETCH_ASSOC);
 
             if (!$persona) {
-                return $this->mensajes[1];
+                return $this->mensajes[2];
             }
 
             $apellido = strtolower(trim($persona['primer_apellido']));
@@ -152,7 +153,7 @@ class usuariosModels extends Model
             return ["success" => true, "username" => $username];
 
         } catch (PDOException $e) {
-            return ["error" => $this->mensajes[2] . $e->getMessage()];
+            return ["error" => $this->mensajes[1]];
         }
     }
 
@@ -161,7 +162,7 @@ class usuariosModels extends Model
         $this->mensajes = [
             "Error de conexion a la base de datos",
             "Error inesperado al crear el usuario {username}",
-            "El usuario {username} se ha creado exitosamente"
+            "El usuario se ha creado exitosamente"
         ];
 
         try {
@@ -171,9 +172,9 @@ class usuariosModels extends Model
 
             $resultadoUsername = $this->CreacionDeUsername($persona_id);
 
-            if (isset($resultadoUsername['error'])) {
-                return $resultadoUsername['error'];
-            }
+            // if (isset($resultadoUsername['error'])) {
+            //     return $resultadoUsername['error'];
+            // }
 
             $username_generado = $resultadoUsername['username'];
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
@@ -189,9 +190,7 @@ class usuariosModels extends Model
 
             $stmt->execute();
 
-            return [
-                "success" => json_encode(str_replace("{username}", $username_generado, $this->mensajes[2]))
-            ];
+            return $this->mensajes[2];
         } catch (PDOException $e) {
             return json_encode([
                 "error" => str_replace("{username}", $username_generado ?? 'desconocido', $this->mensajes[1]) . ": " . $e->getMessage()
@@ -242,17 +241,3 @@ class usuariosModels extends Model
         }
     }
 }
-
-$prueba2 = new usuariosModels($pdo);
-
-//echo $prueba2->crearUsuarios(1, 1, "alexmadrid326@gmail.com", '');
-
-// echo $prueba2->obtenerUsuarios();
-
-// echo "<hr>";
-
-// echo $prueba2->obtenerUsuariosPorUsername("madrida753");
-
-// echo "<hr>";
-
-//echo $prueba2->actualizarUsername(1, 1, "madrida753", "alexmadrid326@gmail.com");

@@ -13,7 +13,9 @@ CREATE TABLE administracion.roles (
     id SERIAL PRIMARY KEY,
     nombre_rol VARCHAR(50) UNIQUE NOT NULL,
     descripcion TEXT,
-    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    act_en TIMESTAMP
+
 );
 
 -- PERMISOS

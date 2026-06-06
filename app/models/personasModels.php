@@ -65,7 +65,6 @@ class personasModel extends Model
                 return $this->mensajes[0];
             }
 
-            // Se cambia b.id por a.id (ID de la persona) y se añade b.descripcion opcionalmente
             $stmt = $this->pdo->prepare("SELECT a.id AS id_persona, a.id_genero, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
                 FROM administracion.personas a 
                 INNER JOIN administracion.generos b 
@@ -97,15 +96,14 @@ class personasModel extends Model
                 return str_replace("{cedula}", $cedula, $this->mensajes[1]);
             }
 
-            // Se corrige el SELECT aquí también para recuperar el ID de la persona
-            $stmt = $this->pdo->prepare("SELECT a.id AS id_persona, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
+            $stmt = $this->pdo->prepare("SELECT a.id, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
                 FROM administracion.personas a 
                 INNER JOIN administracion.generos b 
                 ON a.id_genero = b.id
                 WHERE a.cedula_identidad = :cedula");
             $stmt->bindParam(':cedula', $cedula);
             $stmt->execute();
-            return json_encode($stmt->fetch(PDO::FETCH_ASSOC));
+            return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return str_replace("{cedula}", $cedula, $this->mensajes[1]) . ": " . $e->getMessage();
         }
@@ -178,8 +176,6 @@ class personasModel extends Model
                 return $this->mensajes[0];
             }
 
-            //$fecha_nacimiento = date('d-m-Y', strtotime($fecha_nacimiento));
-
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE cedula_identidad = :cedula");
             $checkStmt->bindParam(':cedula', $cedula);
             $checkStmt->execute();
@@ -222,11 +218,3 @@ class personasModel extends Model
         }
     }
 }
-
-$pruebas = new personasModel($pdo);
-
-
-//echo $pruebas->crearPersona(1, "27391753", "Alex", "Jonfranc", "Madrid", "Marin", 28/01/1999, "04143770143", "alexmadrid326@gmail.com", "palo verde, jose felix ribas");
-//echo $pruebas->actualizarPersona(1, 1, "27391753", "Álex", "Jonfranc", "Madrid", "Marin", "28/01/1999", "04143770143", "alexmadrid326@gmail.com", "palo verde jose felix ribas");
-
-// echo $pruebas->obtenerPersonaPorCedula("27391753");

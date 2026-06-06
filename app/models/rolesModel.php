@@ -42,7 +42,7 @@ class rolesModel extends Model
 
             $stmt = $this->pdo->prepare("SELECT nombre_rol, descripcion FROM administracion.roles");
             $stmt->execute();
-            return json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return $this->mensajes[1] . $e->getMessage();
         }
@@ -71,7 +71,7 @@ class rolesModel extends Model
             $stmt = $this->pdo->prepare("SELECT id, nombre_rol, descripcion FROM administracion.roles WHERE nombre_rol = :nombre_rol");
             $stmt->bindParam(':nombre_rol', $nombre_rol);
             $stmt->execute();
-            return json_encode($stmt->fetch(PDO::FETCH_ASSOC));
+            return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return str_replace('{nombre_rol}', $nombre_rol, $this->mensajes[1]) . $e->getMessage();
         }
@@ -150,14 +150,6 @@ class rolesModel extends Model
         }
     }
 }
-
-$prueba3 = new rolesModel($pdo);
-
-//echo $prueba3->crearRol("MAS ROLES EN MAYUS", "estamos probando el sistema");
-
-// echo "<hr>";
-
-// echo $prueba3->actualizarRol(8, "MAS ROLES EN MAYssss", "otro");
 
 
 
