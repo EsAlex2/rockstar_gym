@@ -23,97 +23,56 @@ class usuariosModels extends Model
 
     public function obtenerUsuarios()
     {
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "Error inesperado al obtener los clientes"
-        ];
-
         try {
-
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
             $sql = $this->pdo->prepare("SELECT id_estatus, id_persona, id_rol, username, email_user FROM administracion.usuarios");
             $sql->execute();
-
-            return json_encode([
-                "success" => $sql->fetchAll(PDO::FETCH_ASSOC)
-            ]);
-
+            $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
+            
+            return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
+            
         } catch (PDOException $e) {
-            return json_encode([
-                "error" => $this->mensajes[1] . $e->getMessage()
-            ]);
+            return ["error" => "Error al obtener usuarios: " . $e->getMessage()];
         }
     }
 
     public function obtenerUsuariosPorUsername(string $username)
     {
-        $this->mensajes = [
-            "Error de conexcion a la base de datos",
-            "No se encontro usuario asociado con el username: {username} en la base de datos.",
-            "Usuario Encontrado exitosamente!"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
-            }
-
-            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
-            $checkUser->bindParam(':username', $username);
-            $checkUser->execute();
-
-            
-            if ($checkUser->fetchColumn() == 0) {
-                return json_encode(["error" => str_replace("{username}", $username, $this->mensajes[1])]);
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
             $query = $this->pdo->prepare("SELECT id_estatus, id_persona, id_rol, username, email_user 
-        FROM administracion.usuarios 
-        WHERE username = :username");
-
+                FROM administracion.usuarios 
+                WHERE username = :username");
             $query->bindParam(':username', $username);
             $query->execute();
-
-            return json_encode([
-                "message" => $this->mensajes[2],
-                "success" => $query->fetch(PDO::FETCH_ASSOC)
-            ]);
-
-        } catch (PDOException $e) {
             
-            return json_encode([
-                "error" => $this->mensajes[1] . $e->getMessage()
-            ]);
+            $result = $query->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$result) {
+                return ["error" => "No se encontró usuario con el username: {$username}"];
+            }
+            
+            return $result;
+            
+        } catch (PDOException $e) {
+            return ["error" => "Error al buscar usuario: " . $e->getMessage()];
         }
     }
 
     /**
-     * FUNCION PARA GENERAR LOS USERNAME AUTOMATICAMENTE CON
-     * 
-     * El primer apellido
-     * La inicial del primer nombre
-     * Los ultimos 3 digitos de la cedula de identidad
-     * 
-     * Genera automáticamente un username único basado en:
-     * primer_apellido + inicial_primer_nombre + últimos 3 dígitos de la cédula.
-     * 
+     * Genera username único basado en: primer_apellido + inicial_primer_nombre + últimos 3 dígitos de la cédula
      */
     public function CreacionDeUsername(int $persona_id)
     {
-
-        $this->mensajes = [
-            "Error de conexión a la base de datos",
-            "Ya existe una persona a ese nombre de usuario",
-            "No se encontró la persona asociada para generar el username",
-            "Se ha creado el usuario exitosamente"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
             $query = $this->pdo->prepare("SELECT primer_nombre, primer_apellido, cedula_identidad FROM administracion.personas WHERE id = :persona_id");
@@ -122,14 +81,12 @@ class usuariosModels extends Model
             $persona = $query->fetch(PDO::FETCH_ASSOC);
 
             if (!$persona) {
-                return $this->mensajes[2];
+                return ["error" => "La persona no existe en la base de datos"];
             }
 
             $apellido = strtolower(trim($persona['primer_apellido']));
             $nombre = strtolower(trim($persona['primer_nombre']));
-
             $inicial = mb_substr($nombre, 0, 1, 'UTF-8');
-
             $cedula_limpia = preg_replace('/[^0-9]/', '', $persona['cedula_identidad']);
             $ultimos_tres = substr($cedula_limpia, -3);
 
@@ -137,6 +94,7 @@ class usuariosModels extends Model
             $username = $username_base;
             $contador = 1;
 
+            // Verificar unicidad del username
             while (true) {
                 $checkQuery = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
                 $checkQuery->bindParam(':username', $username);
@@ -151,93 +109,156 @@ class usuariosModels extends Model
             }
 
             return ["success" => true, "username" => $username];
-
+            
         } catch (PDOException $e) {
-            return ["error" => $this->mensajes[1]];
+            return ["error" => "Error al generar username: " . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Verifica si una persona ya tiene un usuario asociado
+     */
+    public function personaYaTieneUsuario(int $persona_id): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE id_persona = :persona_id");
+            $stmt->bindParam(':persona_id', $persona_id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si el email ya está registrado
+     */
+    public function emailYaRegistrado(string $email): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE email_user = :email");
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+            return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            return false;
         }
     }
 
     public function crearUsuarios(int $persona_id, int $rol_id, string $email, string $password = "Cliente2026**")
     {
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "Error inesperado al crear el usuario {username}",
-            "El usuario se ha creado exitosamente"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $resultadoUsername = $this->CreacionDeUsername($persona_id);
+            // VALIDACIÓN 1: Verificar que la persona existe
+            $checkPersona = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE id = :persona_id");
+            $checkPersona->bindParam(':persona_id', $persona_id, PDO::PARAM_INT);
+            $checkPersona->execute();
+            
+            if ($checkPersona->fetchColumn() == 0) {
+                return ["error" => "La persona no existe en el sistema"];
+            }
 
-            // if (isset($resultadoUsername['error'])) {
-            //     return $resultadoUsername['error'];
-            // }
+            if ($this->personaYaTieneUsuario($persona_id)) {
+                return ["error" => "La persona ya tiene un usuario registrado"];
+            }
 
-            $username_generado = $resultadoUsername['username'];
+            if ($this->emailYaRegistrado($email)) {
+                return ["error" => "El correo electrónico ya está registrado por otro usuario"];
+            }
+
+            $checkRol = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id = :rol_id");
+            $checkRol->bindParam(':rol_id', $rol_id, PDO::PARAM_INT);
+            $checkRol->execute();
+            
+            if ($checkRol->fetchColumn() == 0) {
+                return ["error" => "El rol no existe en el sistema"];
+            }
+
+            $usernameResult = $this->CreacionDeUsername($persona_id);
+            
+            if (isset($usernameResult['error'])) {
+                return ["error" => $usernameResult['error']];
+            }
+            
+            $username_generado = $usernameResult['username'];
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return ["error" => "El correo electrónico no tiene un formato válido"];
+            }
+
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.usuarios (id_estatus, id_persona, id_rol, username, email_user, password_hash) VALUES (:id_estatus, :id_persona, :id_rol, :username, :email_user, :password_hash)");
+            $stmt = $this->pdo->prepare("INSERT INTO administracion.usuarios (id_estatus, id_persona, id_rol, username, email_user, password_hash) 
+                VALUES (:id_estatus, :id_persona, :id_rol, :username, :email_user, :password_hash)");
 
             $estatus_activo = 1;
-            $stmt->bindParam(':id_estatus', $estatus_activo);
-            $stmt->bindParam(':id_persona', $persona_id);
-            $stmt->bindParam(':id_rol', $rol_id);
+            $stmt->bindParam(':id_estatus', $estatus_activo, PDO::PARAM_INT);
+            $stmt->bindParam(':id_persona', $persona_id, PDO::PARAM_INT);
+            $stmt->bindParam(':id_rol', $rol_id, PDO::PARAM_INT);
             $stmt->bindParam(':username', $username_generado);
             $stmt->bindParam(':email_user', $email);
             $stmt->bindParam(':password_hash', $password_hash);
 
             $stmt->execute();
 
-            return $this->mensajes[2];
+            return [
+                "success" => true,
+                "message" => "Usuario creado exitosamente",
+                "data" => [
+                    "id_rol" => $rol_id,
+                    "username" => $username_generado,
+                    "email" => $email,
+                    "password" => $password
+                ]
+            ];
+            
         } catch (PDOException $e) {
-            return json_encode([
-                "error" => str_replace("{username}", $username_generado ?? 'desconocido', $this->mensajes[1]) . ": " . $e->getMessage()
-            ]);
+            if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                if (strpos($e->getMessage(), 'email_user') !== false) {
+                    return ["error" => "El correo electrónico ya está registrado"];
+                }
+                if (strpos($e->getMessage(), 'username') !== false) {
+                    return ["error" => "El nombre de usuario ya existe"];
+                }
+                if (strpos($e->getMessage(), 'id_persona') !== false) {
+                    return ["error" => "La persona ya tiene un usuario asignado"];
+                }
+            }
+            return ["error" => "Error al crear usuario: " . $e->getMessage()];
         }
     }
 
     public function actualizarUsername(int $estatus_id, int $rol_id, string $username, string $email)
     {
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "No se encontro usuario asociado a ese username: {username}",
-            "Error inesperado para actualizar al usuario: {username}",
-            "Se ha actualizado el usuario Exitosamente!"
-        ];
-
         try {
-
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $chekUserUpdate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
-            $chekUserUpdate->bindParam(':username', $username);
-            $chekUserUpdate->execute();
+            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
+            $checkUser->bindParam(':username', $username);
+            $checkUser->execute();
 
-            if ($chekUserUpdate->fetchColumn() == 0) {
-                return str_replace("{username}", $username, $this->mensajes[1]);
+            if ($checkUser->fetchColumn() == 0) {
+                return ["error" => "No se encontró usuario con username: {$username}"];
             }
 
             $updateUsers = $this->pdo->prepare("UPDATE administracion.usuarios 
-            SET id_estatus = :estatus, id_rol = :rol, username = :username, email_user = :email, actualizado_en = NOW()
-            WHERE username = :username");
+                SET id_estatus = :estatus, id_rol = :rol, email_user = :email, actualizado_en = NOW()
+                WHERE username = :username");
 
-            $updateUsers->bindParam(":estatus", $estatus_id);
-            $updateUsers->bindParam(":rol", $rol_id);
-            $updateUsers->bindParam("username", $username);
+            $updateUsers->bindParam(":estatus", $estatus_id, PDO::PARAM_INT);
+            $updateUsers->bindParam(":rol", $rol_id, PDO::PARAM_INT);
             $updateUsers->bindParam(":email", $email);
+            $updateUsers->bindParam(":username", $username);
             $updateUsers->execute();
 
-            return json_encode([
-                "success" => $this->mensajes[3]
-            ]);
+            return ["success" => true, "message" => "Usuario actualizado exitosamente"];
+            
         } catch (PDOException $e) {
-            return json_encode([
-                "error" => $this->mensajes[2] . $e->getMessage()
-            ]);
+            return ["error" => "Error al actualizar usuario: " . $e->getMessage()];
         }
     }
 }

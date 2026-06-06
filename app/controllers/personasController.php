@@ -45,7 +45,7 @@ class PersonasController extends Controllers
             "direccion" => $data['direccion_habitacion'] ?? null
         ];
 
-        return json_encode($resultado);
+        return json_encode($resultado, JSON_UNESCAPED_UNICODE);
     }
 
     public function crearNuevaPersona(array $datos)
@@ -137,4 +137,16 @@ class PersonasController extends Controllers
 
 $prueba = new PersonasController($pdo);
 
-echo $prueba->listarPersonas();
+// $datos = [
+//     "genero_id" => 1, 
+//     "estatus_id" => 2, 
+//     "cedula" => "27391753",
+//     "primer_nombre" => "Alex",
+//     "primer_apellido" => "Madrid",
+//     "fecha_nacimiento" => "28/01/1999",
+//     "telefono" => "04143770143", 
+//     "correo_electronico" => "alexmadrid326@gmail.com",
+//     "direccion" => "petare, jose felix ribas"
+// ];
+
+// echo $prueba->listarPersonas();

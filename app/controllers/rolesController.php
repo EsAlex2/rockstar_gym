@@ -24,8 +24,7 @@ class rolesController extends Controllers
 
         if (!is_array($data)) {
             return json_encode([
-                "error" => "No se pudo procesar la información o no hay roles cargados",
-                "detalle" => $data
+                "error" => "No se pudo procesar la información o no hay roles cargados"
             ]);
         }
 
