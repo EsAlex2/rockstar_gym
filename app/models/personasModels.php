@@ -55,37 +55,29 @@ class personasModel extends Model
 
     public function obtenerPersonas()
     {
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "Error inesperado para obtener las personas registradas"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("SELECT a.id AS id_persona, a.id_genero, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
+            $stmt = $this->pdo->prepare("SELECT a.id AS id_persona, b.descripcion AS genero, c.nombre_estatus AS estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
                 FROM administracion.personas a 
-                INNER JOIN administracion.generos b 
-                ON a.id_genero = b.id");
+                INNER JOIN administracion.generos b ON a.id_genero = b.id
+                INNER JOIN administracion.estatus c ON a.id_estatus = c.id");
             $stmt->execute();
-            return json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+            $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
         } catch (PDOException $e) {
-            return $this->mensajes[1] . ": " . $e->getMessage();
+            return ["error" => "Error al obtener usuarios: " . $e->getMessage()];
         }
     }
 
     public function obtenerPersonaPorCedula(string $cedula)
     {
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "No se encontró la persona con cédula: {cedula} en la base de datos",
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE cedula_identidad = :cedula");
@@ -93,34 +85,29 @@ class personasModel extends Model
             $checkStmt->execute();
 
             if ($checkStmt->fetchColumn() == 0) {
-                return str_replace("{cedula}", $cedula, $this->mensajes[1]);
+                return ["error" => "No se encontró persona registrada con la cedula: {$cedula}"];
             }
 
-            $stmt = $this->pdo->prepare("SELECT a.id, b.descripcion AS genero, a.id_estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
+            $stmt = $this->pdo->prepare("SELECT a.id, b.descripcion AS genero, c.nombre_estatus AS estatus, a.cedula_identidad, a.primer_nombre, a.segundo_nombre, a.primer_apellido, a.segundo_apellido, a.fecha_nacimiento, a.telefono, a.email, a.direccion_habitacion 
                 FROM administracion.personas a 
-                INNER JOIN administracion.generos b 
-                ON a.id_genero = b.id
+                INNER JOIN administracion.generos b ON a.id_genero = b.id
+                INNER JOIN administracion.estatus c ON a.id_estatus = c.id
                 WHERE a.cedula_identidad = :cedula");
             $stmt->bindParam(':cedula', $cedula);
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $resultado;
         } catch (PDOException $e) {
-            return str_replace("{cedula}", $cedula, $this->mensajes[1]) . ": " . $e->getMessage();
+            return ["error" => "Error al buscar la persona " . $e->getMessage()];
         }
     }
 
     public function crearPersona(int $genero_id, string $cedula, string $primer_nombre, string $segundo_nombre, string $primer_apellido, string $segundo_apellido, string $fecha_nacimiento, string $telefono, string $correo_electronico, string $direccion)
     {
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "Error inesperado al crear a la persona con la cedula {cedula}",
-            "La persona con cédula {cedula} ya existe en la base de datos",
-            "La persona con cédula {cedula} se ha creado correctamente"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE cedula_identidad = :cedula");
@@ -128,7 +115,7 @@ class personasModel extends Model
             $checkStmt->execute();
 
             if ($checkStmt->fetchColumn() > 0) {
-                return str_replace("{cedula}", $cedula, $this->mensajes[2]);
+                return ["error" => "La persona con cédula {$cedula} ya existe en la base de datos"];
             }
 
             $caracteresEspeciales = ['ñ', 'Ñ', 'á', 'Á', 'é', 'É', 'í', 'Í', 'ó', 'Ó', 'ú', 'Ú'];
@@ -139,7 +126,7 @@ class personasModel extends Model
 
             $estatus_id = 2;
 
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.personas (id_genero, id_estatus, cedula_identidad, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion_habitacion) VALUES (:genero_id, :estatus_id, :cedula, :primer_nombre, :segundo_nombre, :primer_apellido, :segundo_apellido, :fecha_nacimiento, :telefono, :email, :direccion)");
+            $stmt = $this->pdo->prepare("INSERT INTO administracion.personas (id_genero, id_estatus, cedula_identidad, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, email, telefono, direccion_habitacion) VALUES (:genero_id, :estatus_id, :cedula, :primer_nombre, :segundo_nombre, :primer_apellido, :segundo_apellido, :fecha_nacimiento, :telefono, :email, :direccion)");
             $stmt->bindParam(':genero_id', $genero_id);
             $stmt->bindParam(':estatus_id', $estatus_id);
             $stmt->bindParam(':cedula', $cedula);
@@ -148,32 +135,23 @@ class personasModel extends Model
             $stmt->bindParam(':primer_apellido', $datos_personales[2]);
             $stmt->bindParam(':segundo_apellido', $datos_personales[3]);
             $stmt->bindParam(':fecha_nacimiento', $fecha_nacimiento);
-            $stmt->bindParam(':telefono', $telefono);
             $stmt->bindParam(':email', $correo_electronico);
+            $stmt->bindParam(':telefono', $telefono);
             $stmt->bindParam(':direccion', $direccion);
             $stmt->execute();
 
-            // Se agrega str_replace para renderizar la cédula real en el mensaje de éxito
-            return str_replace("{cedula}", $cedula, $this->mensajes[3]);
+            return ["success" => true, "message" => "La persona con cédula {$cedula} se ha creado correctamente"];
         } catch (PDOException $e) {
-            return str_replace("{cedula}", $cedula, $this->mensajes[1]) . ": " . $e->getMessage();
+            return ["error" => "Error al crear la persona " . $e->getMessage()];
         }
     }
 
 
     public function actualizarPersona(int $genero_id, int $estatus_id, string $cedula, string $primer_nombre, string $segundo_nombre, string $primer_apellido, string $segundo_apellido, string $fecha_nacimiento, string $telefono, string $correo_electronico, string $direccion)
     {
-            
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "No se encontró la persona con cédula: {$cedula} en la base de datos",
-            "Error inesperado para actualizar la persona con cédula {$cedula}: ",
-            "La persona con cedula {$cedula} se ha actualizado correctamente"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexión a la base de datos"];
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE cedula_identidad = :cedula");
@@ -181,7 +159,7 @@ class personasModel extends Model
             $checkStmt->execute();
 
             if ($checkStmt->fetchColumn() == 0) {
-                return str_replace("{cedula}", $cedula, $this->mensajes[1]);
+                return ["error" => "No se encontró esta cedula en la base de datos"];
             }
 
             /*
@@ -195,7 +173,8 @@ class personasModel extends Model
             $datos_personales = array_map('trim', $datos_personales);
             $datos_personales = str_replace($caracteresEspeciales, $reemplazos, $datos_personales);
 
-            $stmt = $this->pdo->prepare("UPDATE administracion.personas SET id_genero = :genero_id, id_estatus = :estatus_id, primer_nombre = :primer_nombre, segundo_nombre = :segundo_nombre, primer_apellido = :primer_apellido, segundo_apellido = :segundo_apellido, fecha_nacimiento = :fecha_nacimiento, telefono = :telefono, email = :email, direccion_habitacion = :direccion_habitacion, actualizado_en = now() WHERE cedula_identidad = :cedula");
+            $stmt = $this->pdo->prepare("UPDATE administracion.personas SET id_genero = :genero_id, id_estatus = :estatus_id, primer_nombre = :primer_nombre, segundo_nombre = :segundo_nombre, primer_apellido = :primer_apellido, segundo_apellido = :segundo_apellido, fecha_nacimiento = :fecha_nacimiento, telefono = :telefono, email = :email, direccion_habitacion = :direccion_habitacion, actualizado_en = now() 
+            WHERE cedula_identidad = :cedula");
             $stmt->bindParam(':genero_id', $genero_id);
             $stmt->bindParam(':estatus_id', $estatus_id);
             $stmt->bindParam(':cedula', $cedula);
@@ -210,11 +189,9 @@ class personasModel extends Model
 
             $stmt->execute();
 
-            return json_encode([
-                "success" => $this->mensajes[3]
-            ]);
+            return ["success" => "La persona con cedula {$cedula} se ha actualizado correctamente"];
         } catch (PDOException $e) {
-            return $this->mensajes[2] . $e->getMessage();
+            return ["error" => "Error al actualizar la persona " . $e->getMessage()];
         }
     }
 }

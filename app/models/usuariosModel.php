@@ -31,9 +31,8 @@ class usuariosModels extends Model
             $sql = $this->pdo->prepare("SELECT id_estatus, id_persona, id_rol, username, email_user FROM administracion.usuarios");
             $sql->execute();
             $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
-            
+
             return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
-            
         } catch (PDOException $e) {
             return ["error" => "Error al obtener usuarios: " . $e->getMessage()];
         }
@@ -51,15 +50,10 @@ class usuariosModels extends Model
                 WHERE username = :username");
             $query->bindParam(':username', $username);
             $query->execute();
-            
-            $result = $query->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$result) {
-                return ["error" => "No se encontró usuario con el username: {$username}"];
-            }
-            
-            return $result;
-            
+
+            $resultado = $query->fetch(PDO::FETCH_ASSOC);
+
+            return empty($resultado) ? ["error" => "No hay registros con ese nombre de usuario {$username}"] : $resultado;
         } catch (PDOException $e) {
             return ["error" => "Error al buscar usuario: " . $e->getMessage()];
         }
@@ -109,7 +103,6 @@ class usuariosModels extends Model
             }
 
             return ["success" => true, "username" => $username];
-            
         } catch (PDOException $e) {
             return ["error" => "Error al generar username: " . $e->getMessage()];
         }
@@ -156,7 +149,7 @@ class usuariosModels extends Model
             $checkPersona = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE id = :persona_id");
             $checkPersona->bindParam(':persona_id', $persona_id, PDO::PARAM_INT);
             $checkPersona->execute();
-            
+
             if ($checkPersona->fetchColumn() == 0) {
                 return ["error" => "La persona no existe en el sistema"];
             }
@@ -172,17 +165,17 @@ class usuariosModels extends Model
             $checkRol = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id = :rol_id");
             $checkRol->bindParam(':rol_id', $rol_id, PDO::PARAM_INT);
             $checkRol->execute();
-            
+
             if ($checkRol->fetchColumn() == 0) {
                 return ["error" => "El rol no existe en el sistema"];
             }
 
             $usernameResult = $this->CreacionDeUsername($persona_id);
-            
+
             if (isset($usernameResult['error'])) {
                 return ["error" => $usernameResult['error']];
             }
-            
+
             $username_generado = $usernameResult['username'];
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -213,7 +206,6 @@ class usuariosModels extends Model
                     "password" => $password
                 ]
             ];
-            
         } catch (PDOException $e) {
             if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
                 if (strpos($e->getMessage(), 'email_user') !== false) {
@@ -245,6 +237,14 @@ class usuariosModels extends Model
                 return ["error" => "No se encontró usuario con username: {$username}"];
             }
 
+            $checkRoles = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id = :id_rol");
+            $checkRoles->bindParam(':id_rol', $rol_id);
+            $checkRoles->execute();
+
+            if ($checkRoles->fetchColumn() == 0) {
+                return ["error" => "El rol especificado no existe en la base de datos, contacte a Soporte!"];
+            }
+
             $updateUsers = $this->pdo->prepare("UPDATE administracion.usuarios 
                 SET id_estatus = :estatus, id_rol = :rol, email_user = :email, actualizado_en = NOW()
                 WHERE username = :username");
@@ -256,7 +256,47 @@ class usuariosModels extends Model
             $updateUsers->execute();
 
             return ["success" => true, "message" => "Usuario actualizado exitosamente"];
-            
+        } catch (PDOException $e) {
+            return ["error" => "Error al actualizar usuario: " . $e->getMessage()];
+        }
+    }
+
+    public function cambiarContraseña(string $username, string $email, string $password)
+    {
+
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
+            $checkUser->bindParam(':username', $username);
+            $checkUser->execute();
+
+            if ($checkUser->fetchColumn() == 0) {
+                return ["error" => "No se encontró el nombre de usuario: {$username}"];
+            }
+
+            $checkEmail = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE email_user = :email");
+            $checkEmail->bindParam(':email', $email);
+            $checkEmail->execute();
+
+            if ($checkEmail->fetchColumn() == 0) {
+                return ["error" => "No se encontró el usuario con el correo: {$email}"];
+            }
+
+            $password_hash = password_hash($password, PASSWORD_BCRYPT);
+
+            $updatePassword = $this->pdo->prepare("UPDATE administracion.usuarios 
+                SET password_hash = :pass, actualizado_en = NOW()
+                WHERE username = :username");
+
+            $updatePassword->bindParam(":username", $username);
+            $updatePassword->bindParam(":pass", $password_hash);
+            $updatePassword->execute();
+
+            return ["success" => true, "message" => "Contraseña actualizada exitosamente"];
+
         } catch (PDOException $e) {
             return ["error" => "Error al actualizar usuario: " . $e->getMessage()];
         }

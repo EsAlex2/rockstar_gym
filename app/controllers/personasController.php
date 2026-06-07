@@ -18,25 +18,41 @@ class PersonasController extends Controllers
         $this->personaModel = $this->cargarModels('personasModel');
     }
 
+    private function response(bool $success, string $message, $data = null)
+    {
+        $response = [
+            "status" => $success ? "success" : "error",
+            "message" => $message
+        ];
+        
+        if ($data !== null) {
+            $response["data"] = $data;
+        }
+        
+        return json_encode($response, JSON_UNESCAPED_UNICODE);
+    }
+
     public function listarPersonas()
     {
         $data = $this->personaModel->obtenerPersonas();
-        return $data;
+
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
+        }
+
+        return $this->response(true, "Personas obtenidas exitosamente", $data);
     }
 
     public function listarPorCedula(string $cedula)
     {
         $data = $this->personaModel->obtenerPersonaPorCedula($cedula);
 
-        if (!is_array($data)) {
-            return json_encode([
-                "error" => "No se pudo procesar la información o la persona no existe.", 
-                "detalle" => $data
-            ]);
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
         }
 
         $resultado = [
-            "id"        => $data['id'] ?? null,
+            "estatus" => $data['estatus'] ?? null,
             "cedula"    => $data['cedula_identidad'] ?? null,
             "nombre"    => ($data['primer_nombre'] ?? '') . ' ' . ($data['primer_apellido'] ?? ''),
             "genero"    => $data['genero'] ?? null,
@@ -45,108 +61,106 @@ class PersonasController extends Controllers
             "direccion" => $data['direccion_habitacion'] ?? null
         ];
 
-        return json_encode($resultado, JSON_UNESCAPED_UNICODE);
+        return $this->response(true, "Persona Encontrada con Exito", $resultado);
     }
 
     public function crearNuevaPersona(array $datos)
     {
         $camposObligatorios = [
-            'genero_id',
-            'cedula',
+            'id_genero',
+            'cedula_identidad',
             'primer_nombre',
             'primer_apellido',
             'fecha_nacimiento',
             'telefono',
-            'correo_electronico',
-            'direccion'
+            'email',
+            'direccion_habitacion'
         ];
 
         foreach ($camposObligatorios as $campo) {
             if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return json_encode([
-                    "status" => "error",
-                    "message" => "El campo '{$campo}' es obligatorio para el registro."
-                ], JSON_UNESCAPED_UNICODE);
+                return $this->response(false, "Todos los campos son obligatorios");
             }
         }
 
-        $segundo_nombre   = $datos['segundo_nombre'] ?? '';
+        $segundo_nombre = $datos['segundo_nombre'] ?? '';
         $segundo_apellido = $datos['segundo_apellido'] ?? '';
 
-        $resultadoModelo = $this->personaModel->crearPersona(
-            (int)$datos['genero_id'],
-            trim($datos['cedula']),
-            trim($datos['primer_nombre']),
-            trim($segundo_nombre),
-            trim($datos['primer_apellido']),
-            trim($segundo_apellido),
-            $datos['fecha_nacimiento'],
-            trim($datos['telefono']),
-            trim($datos['correo_electronico']),
-            trim($datos['direccion'])
-        );
+        $id_genero = (int)$datos['id_genero'];
+        $cedula = trim($datos['cedula_identidad']);
+        $nombre1 = trim($datos['primer_nombre']);
+        $nombre2 = $segundo_nombre;
+        $apellido1 = trim($datos['primer_apellido']); 
+        $apellido2 = $segundo_apellido;
+        $fecha_nacimiento = trim($datos['fecha_nacimiento']);
+        $email = trim($datos['email']);
+        $telefono = trim($datos['telefono']);
+        $direccion = trim($datos['direccion_habitacion']) ?? 'Sin especificar';
 
-        if (strpos($resultadoModelo, 'correctamente') !== false) {
-            return json_encode([
-                "status" => "success",
-                "message" => $resultadoModelo
-            ], JSON_UNESCAPED_UNICODE);
-        } else {
-            return json_encode([
-                "status" => "error",
-                "message" => $resultadoModelo
-            ], JSON_UNESCAPED_UNICODE);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response(false, "El formato del correo electrónico no es válido");
         }
+
+        $request = $this->personaModel->crearPersona($id_genero, $cedula, $nombre1, $nombre2, $apellido1, $apellido2, $fecha_nacimiento, $email, $telefono, $direccion);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'], $request['data'] ?? null);
     }
 
-    public function actualizarDatosPersona(array $datos)
+    public function actualizarDatosPersona(array $datos)    
     {
+        $camposObligatorios = ['cedula_identidad', 'primer_nombre', 'primer_apellido','email'];
 
-        $segundo_nombre   = $datos['segundo_nombre'] ?? '';
+        foreach($camposObligatorios as $campos){
+            if (!isset($datos[$campos]) || trim($datos[$campos]) === '') {
+                return $this->response(false, "Todos los campos son obligatorios, falta {$campos}");
+            }
+        }
+
+        $segundo_nombre = $datos['segundo_nombre'] ?? '';
         $segundo_apellido = $datos['segundo_apellido'] ?? '';
 
-        $resultadoModelo = $this->personaModel->actualizarPersona(
-            (int)$datos['genero_id'],
-            (int)$datos['estatus_id'],
-            trim($datos['cedula']),
-            trim($datos['primer_nombre']),
-            trim($segundo_nombre),
-            trim($datos['primer_apellido']),
-            trim($segundo_apellido),
-            $datos['fecha_nacimiento'],
-            trim($datos['telefono']),
-            trim($datos['correo_electronico']),
-            trim($datos['direccion'])
-        );
+        $id_genero = (int)$datos['id_genero'];
+        $id_estatus = (int)$datos['id_estatus'];
+        $cedula = trim($datos['cedula_identidad']);
+        $nombre1 = trim($datos['primer_nombre']);
+        $nombre2 = $segundo_nombre;
+        $apellido1 = trim($datos['primer_apellido']); 
+        $apellido2 = $segundo_apellido;
+        $fecha_nacimiento = trim($datos['fecha_nacimiento']);
+        $email = trim($datos['email']);
+        $telefono = trim($datos['telefono']);
+        $direccion = trim($datos['direccion_habitacion']) ?? 'Sin especificar';
 
-        $respuestaDecodificada = json_decode($resultadoModelo, true);
-
-        if (is_array($respuestaDecodificada) && isset($respuestaDecodificada['success'])) {
-            return json_encode([
-                "status" => "success",
-                "message" => $respuestaDecodificada['success']
-            ], JSON_UNESCAPED_UNICODE);
-        } else {
-            return json_encode([
-                "status" => "error",
-                "message" => $resultadoModelo
-            ], JSON_UNESCAPED_UNICODE);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response(false, "El formato del correo electrónico no es válido");
         }
+
+        $request = $this->personaModel->actualizarPersona($id_genero, $id_estatus, $cedula, $nombre1, $nombre2, $apellido1, $apellido2, $fecha_nacimiento, $email, $telefono, $direccion);
+
+        if(isset($request['error'])){
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['success'], $request['data'] ?? null);
     }
 }
 
-$prueba = new PersonasController($pdo);
+$pruebas = new PersonasController($pdo);
 
 // $datos = [
-//     "genero_id" => 1, 
-//     "estatus_id" => 2, 
-//     "cedula" => "27391753",
-//     "primer_nombre" => "Alex",
-//     "primer_apellido" => "Madrid",
-//     "fecha_nacimiento" => "28/01/1999",
-//     "telefono" => "04143770143", 
-//     "correo_electronico" => "alexmadrid326@gmail.com",
-//     "direccion" => "petare, jose felix ribas"
+//     "id_genero" => 2,
+//     "id_estatus" => 1,
+//     "cedula_identidad" => "29571480",
+//     "primer_nombre" => "adriáaña",
+//     "primer_apellido" => "estrada",
+//     "fecha_nacimiento" => "13/11/2002",
+//     "telefono" => "04127968974",
+//     "email" => "aaec1311@gmail.com",
+//     "direccion_habitacion" => "la pastora" 
 // ];
 
-// echo $prueba->listarPersonas();
+// echo $pruebas->actualizarDatosPersona($datos);
