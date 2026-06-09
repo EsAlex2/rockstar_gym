@@ -60,8 +60,21 @@ class entrendorModel extends Model
         }
     }
 
-    public function listarEntrenadores(){
-        
+    public function listarEntrenadores()
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $sql = $this->pdo->prepare("SELECT id_estatus, id_persona FROM administracion.entrenadores");
+            $sql->execute();
+            $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
+
+            return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
+        } catch (PDOException $e) {
+            return ["error" => "Error al obtener usuarios: " . $e->getMessage()];
+        }
     }
 }
 
