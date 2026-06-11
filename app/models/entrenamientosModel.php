@@ -99,8 +99,62 @@ class EntrenamientosModel extends Model
         }
     }
 
+    public function listarEntrenamientosid(int $id)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexion en la base de datos"];
+            }
+
+            $check = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.entrenamiento WHERE  id = :id_entrenamiento");
+            $check->bindParam(':id_entrenamiento', $id, PDO::PARAM_INT);
+            $check->execute();
+
+            if ($check->fetchColumn() == 0) {
+                return ["error" => "Este entrenamiento no existe en la base de datos"];
+            }
+
+            $lista = $this->pdo->prepare("
+                SELECT b.nombre_estatus AS Estatus, a.id_entrenador, p.primer_nombre, p.primer_apellido, d.sede AS Sede, a.nombre_entrenamiento
+                FROM administracion.entrenamiento a
+                INNER JOIN administracion.estatus b ON a.id_estatus = b.id
+                INNER JOIN administracion.entrenadores c ON a.id_entrenador = c.id
+                INNER JOIN administracion.personas p ON c.id_persona = p.id
+                INNER JOIN administracion.sedes d ON a.id_sede = d.id
+                WHERE a.id = :id_entrenamiento
+            ");
+
+            $lista->bindParam(":id_entrenamiento", $id, PDO::PARAM_INT);
+            $lista->execute();
+
+            $resultado = $lista->fetch(PDO::FETCH_ASSOC);
+
+            return empty($resultado) ? ["error" => "No hay entrenamientos registrados"] : $resultado;
+        } catch (PDOException $e) {
+            return ["error" => "Error al obtener listado de entrenamientos " . $e->getMessage()];
+        }
+    }
+
+    public function actualizarEntrenamientos(int $id_estatus, int $id_entrenador, int $id_sede, string $nombre, string $descripcion){
+        
+        try{
+
+            if(!$this->pdo){
+                return ["error" => "Error de conexion a la base de datos"];
+            }
+
+
+            /**
+             * terminar esta funcion para poder actualizaciones de los entrenamientos que estan registrados
+             */
+
+        }catch(PDOException $e){
+
+        }
+    }
+
 }
 
 $pruebas = new EntrenamientosModel($pdo);
 
-echo json_encode($pruebas->listarEntrenamientos(), JSON_UNESCAPED_UNICODE);
+echo json_encode($pruebas->listarEntrenamientosid(3), JSON_UNESCAPED_UNICODE);
