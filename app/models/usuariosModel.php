@@ -151,7 +151,7 @@ class usuariosModels extends Model
             $checkPersona->execute();
 
             if ($checkPersona->fetchColumn() == 0) {
-                return ["error" => "La persona no existe en el sistema"];
+                return ["error" => "La persona no existe en nuestra base de datos"];
             }
 
             if ($this->personaYaTieneUsuario($persona_id)) {

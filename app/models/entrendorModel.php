@@ -141,6 +141,6 @@ class entrendorModel extends Model
     }
 }
 
-$prueba = new entrendorModel($pdo);
+// $prueba = new entrendorModel($pdo);
 
-echo json_encode($prueba->listarPorCedula('27391753'), JSON_UNESCAPED_UNICODE);
+// echo json_encode($prueba->listarPorCedula('27391753'), JSON_UNESCAPED_UNICODE);
