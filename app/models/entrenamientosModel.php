@@ -68,7 +68,6 @@ class EntrenamientosModel extends Model
                     "descripcion" => $descripcion
                 ]
             ];
-
         } catch (PDOException $e) {
             return ["error" => "Error inesperado al crear el entrenamiento: " . $e->getMessage()];
         }
@@ -135,26 +134,58 @@ class EntrenamientosModel extends Model
         }
     }
 
-    public function actualizarEntrenamientos(int $id_estatus, int $id_entrenador, int $id_sede, string $nombre, string $descripcion){
-        
-        try{
+    public function actualizarEntrenamientos(int $id_estatus, int $id_entrenador, int $id_sede, string $nombre, string $descripcion)
+    {
 
-            if(!$this->pdo){
+        try {
+
+            if (!$this->pdo) {
                 return ["error" => "Error de conexion a la base de datos"];
             }
 
+            $checkEntrenador = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.entrenadores WHERE id = :id_entrenador");
+            $checkEntrenador->bindParam(":id_entrenador", $id_entrenador, PDO::PARAM_INT);
+            $checkEntrenador->execute();
+
+            if ($checkEntrenador->fetchColumn() == 0) {
+                return ["error" => "No existe registro del entrenador que intenta buscar en nuestra base de datos"];
+            }
 
             /**
-             * terminar esta funcion para poder actualizaciones de los entrenamientos que estan registrados
+             * validamos que la sede especificada exista en la base de datos
              */
+            $checkSede = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.sedes WHERE id = :id_sede");
+            $checkSede->bindParam(":id_sede", $id_sede, PDO::PARAM_INT);
+            $checkSede->execute();
 
-        }catch(PDOException $e){
+            if ($checkSede->fetchColumn() == 0) {
+                return ["error" => "No existe registro de la sede que intenta buscar en nuestra base de datos"];
+            }
 
+            $update = $this->pdo->prepare("UPDATE administracion.entrenamiento
+            SET id_estatus = :id_estatus, id_entrenador = :id_entrenador, id_sede = :id_sede, nombre_entrenamiento = :nombre, descripcion = :descripcion, actualizado_en = NOW()");
+
+            $update->bindParam(":id_estatus", $id_estatus, PDO::PARAM_INT);
+            $update->bindParam(":id_entrenador", $id_entrenador, PDO::PARAM_INT);
+            $update->bindParam(":id_sede", $id_sede, PDO::PARAM_INT);
+            $update->bindParam(":nombre", $nombre, PDO::PARAM_STR);
+            $update->bindParam(":descripcion", $descripcion, PDO::PARAM_STR);
+            $update->execute();
+
+            return [
+                "success" => true,
+                "message" => "Entrenamiento actualizado exitosamente",
+                "data" => [
+                    "id_estatus" => $id_estatus,
+                    "id_entrenador" => $id_entrenador,
+                    "id_sede" => $id_sede,
+                    "nombre_entrenamiento" => $nombre,
+                    "descripcion" => $descripcion
+                ]
+            ];
+        } catch (PDOException $e) {
+            return ["error" => "Error inesperado para actualizar el entrenamiento " . $e->getMessage()];
         }
     }
-
 }
 
-$pruebas = new EntrenamientosModel($pdo);
-
-echo json_encode($pruebas->listarEntrenamientosid(3), JSON_UNESCAPED_UNICODE);
