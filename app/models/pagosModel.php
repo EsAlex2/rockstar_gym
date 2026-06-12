@@ -1,0 +1,182 @@
+<?php
+require_once __DIR__ . '/models.php';
+require_once __DIR__ . '/../core/conn.php';
+
+/* =================================================================================
+ * pagosModel.php
+ * Modelo para la gestión y auditoría de pagos en el sistema de administración.
+ * Por motivos de seguridad contable, este modelo NO permite actualizaciones de montos 
+ * ni eliminaciones de registros. Solo inserción, consulta y cambio de estatus.
+ * Autor: Alex Madrid
+ * Fecha: 12/06/2026
+ * ==============================================================================
+ */
+
+class pagosModel extends Model
+{
+    protected $pdo;
+
+    public function __construct($pdo)
+    {
+        parent::__construct($pdo);
+        $this->pdo = $pdo;
+    }
+
+    /**
+     * Registra un nuevo pago en el sistema.
+     * Valida la existencia previa del código de referencia para evitar colisiones.
+     */
+    public function registrarPago(
+        int $id_banco, 
+        int $id_cliente, 
+        int $id_cliente_plan, 
+        int $id_user,
+        int $id_estatus, 
+        float $monto, 
+        string $fecha_pago, 
+        string $cod_referencia
+    ) {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $refLimpia = strtoupper(trim($cod_referencia));
+
+            $checkRef = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.pagos WHERE cod_referencia = :ref");
+            $checkRef->bindParam(':ref', $refLimpia, PDO::PARAM_STR);
+            $checkRef->execute();
+
+            if ($checkRef->fetchColumn() > 0) {
+                return ["error" => "El código de referencia bancaria '" . $cod_referencia . "' ya fue registrado previamente."];
+            }
+
+            $query = $this->pdo->prepare("INSERT INTO administracion.pagos 
+                (id_banco, id_cliente, id_cliente_plan, id_user, id_estatus, monto, fecha_pago, cod_referencia) 
+                VALUES (:id_banco, :id_cliente, :id_cliente_plan, :id_user, :id_estatus, :monto, :fecha_pago, :ref)");
+
+            $query->bindParam(':id_banco', $id_banco, PDO::PARAM_INT);
+            $query->bindParam(':id_cliente', $id_cliente, PDO::PARAM_INT);
+            $query->bindParam(':id_cliente_plan', $id_cliente_plan, PDO::PARAM_INT);
+            $query->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+            $query->bindParam(':id_estatus', $id_estatus, PDO::PARAM_INT);
+            $query->bindParam(':monto', $monto);
+            $query->bindParam(':fecha_pago', $fecha_pago, PDO::PARAM_STR); // Formato esperado: 'YYYY-MM-DD'
+            $query->bindParam(':ref', $refLimpia, PDO::PARAM_STR);
+
+            $query->execute();
+
+            return [
+                "success" => true,
+                "message" => "Pago registrado exitosamente de forma segura",
+                "data" => [
+                    "id_pago" => $this->pdo->lastInsertId(),
+                    "monto" => $monto,
+                    "cod_referencia" => $refLimpia
+                ]
+            ];
+        } catch (PDOException $e) {
+            return ["error" => "Error crítico al registrar el pago: " . $e->getMessage()];
+        }
+    }
+
+    public function listarPagos()
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $sql = $this->pdo->prepare("SELECT 
+                    p.id,
+                    b.nombre_banco AS banco,
+                    p.id_cliente_plan,
+                    e.nombre_estatus AS estatus,
+                    p.monto,
+                    p.fecha_pago,
+                    p.cod_referencia,
+                    p.creado_en
+                FROM administracion.pagos p
+                INNER JOIN administracion.bancos b ON p.id_banco = b.id
+                INNER JOIN administracion.estatus e ON p.id_estatus = e.id
+                ORDER BY p.creado_en DESC");
+
+            $sql->execute();
+            $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
+
+            return empty($resultado) ? ["error" => "No se registran movimientos de pago en el sistema"] : $resultado;
+        } catch (PDOException $e) {
+            return ["error" => "Error al obtener el historial de pagos: " . $e->getMessage()];
+        }
+    }
+
+    public function buscarPagoPorId(int $id_pago)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $query = $this->pdo->prepare("SELECT 
+                    p.id, p.id_banco, b.nombre_banco, p.id_cliente, p.id_cliente_plan, 
+                    p.id_user, p.id_estatus, e.nombre_estatus, p.monto, p.fecha_pago, p.cod_referencia, p.creado_en
+                FROM administracion.pagos p
+                INNER JOIN administracion.bancos b ON p.id_banco = b.id
+                INNER JOIN administracion.estatus e ON p.id_estatus = e.id
+                WHERE p.id = :id");
+            
+            $query->bindParam(':id', $id_pago, PDO::PARAM_INT);
+            $query->execute();
+            $resultado = $query->fetch(PDO::FETCH_ASSOC);
+
+            if (!$resultado) {
+                return ["error" => "El registro de pago solicitado no existe"];
+            }
+
+            return [
+                "success" => true,
+                "message" => "Pago localizado con éxito",
+                "data" => [$resultado]
+            ];
+        } catch (PDOException $e) {
+            return ["error" => "Error al buscar el pago por ID: " . $e->getMessage()];
+        }
+    }
+
+    public function cambiarEstatusPago(int $id_pago, int $nuevo_id_estatus)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkPago = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.pagos WHERE id = :id");
+            $checkPago->bindParam(':id', $id_pago, PDO::PARAM_INT);
+            $checkPago->execute();
+
+            if ($checkPago->fetchColumn() == 0) {
+                return ["error" => "El pago que intenta modificar no existe"];
+            }
+
+            $checkEstatus = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.estatus WHERE id = :id_e");
+            $checkEstatus->bindParam(':id_e', $nuevo_id_estatus, PDO::PARAM_INT);
+            $checkEstatus->execute();
+
+            if ($checkEstatus->fetchColumn() == 0) {
+                return ["error" => "El estatus seleccionado no es válido"];
+            }
+
+            $query = $this->pdo->prepare("UPDATE administracion.pagos SET id_estatus = :id_e WHERE id = :id");
+            $query->bindParam(':id', $id_pago, PDO::PARAM_INT);
+            $query->bindParam(':id_e', $nuevo_id_estatus, PDO::PARAM_INT);
+            $query->execute();
+
+            return [
+                "success" => true,
+                "message" => "El estatus del pago ha sido actualizado correctamente"
+            ];
+        } catch (PDOException $e) {
+            return ["error" => "Error al cambiar el estatus del pago: " . $e->getMessage()];
+        }
+    }
+}

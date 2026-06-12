@@ -18,20 +18,6 @@ class PersonasController extends Controllers
         $this->personaModel = $this->cargarModels('personasModel');
     }
 
-    private function response(bool $success, string $message, $data = null)
-    {
-        $response = [
-            "status" => $success ? "success" : "error",
-            "message" => $message
-        ];
-        
-        if ($data !== null) {
-            $response["data"] = $data;
-        }
-        
-        return json_encode($response, JSON_UNESCAPED_UNICODE);
-    }
-
     public function listarPersonas()
     {
         $data = $this->personaModel->obtenerPersonas();
@@ -148,19 +134,3 @@ class PersonasController extends Controllers
         return $this->response(true, $request['success'], $request['data'] ?? null);
     }
 }
-
-$pruebas = new PersonasController($pdo);
-
-// $datos = [
-//     "id_genero" => 2,
-//     "id_estatus" => 1,
-//     "cedula_identidad" => "29571480",
-//     "primer_nombre" => "adriáaña",
-//     "primer_apellido" => "estrada",
-//     "fecha_nacimiento" => "13/11/2002",
-//     "telefono" => "04127968974",
-//     "email" => "aaec1311@gmail.com",
-//     "direccion_habitacion" => "la pastora" 
-// ];
-
-// echo $pruebas->actualizarDatosPersona($datos);

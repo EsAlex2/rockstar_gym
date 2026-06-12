@@ -134,7 +134,7 @@ class EntrenamientosModel extends Model
         }
     }
 
-    public function actualizarEntrenamientos(int $id_estatus, int $id_entrenador, int $id_sede, string $nombre, string $descripcion)
+    public function actualizarEntrenamientos(int $id_entrenador, int $id_sede, string $nombre, string $descripcion)
     {
 
         try {
@@ -165,7 +165,6 @@ class EntrenamientosModel extends Model
             $update = $this->pdo->prepare("UPDATE administracion.entrenamiento
             SET id_estatus = :id_estatus, id_entrenador = :id_entrenador, id_sede = :id_sede, nombre_entrenamiento = :nombre, descripcion = :descripcion, actualizado_en = NOW()");
 
-            $update->bindParam(":id_estatus", $id_estatus, PDO::PARAM_INT);
             $update->bindParam(":id_entrenador", $id_entrenador, PDO::PARAM_INT);
             $update->bindParam(":id_sede", $id_sede, PDO::PARAM_INT);
             $update->bindParam(":nombre", $nombre, PDO::PARAM_STR);
@@ -176,7 +175,6 @@ class EntrenamientosModel extends Model
                 "success" => true,
                 "message" => "Entrenamiento actualizado exitosamente",
                 "data" => [
-                    "id_estatus" => $id_estatus,
                     "id_entrenador" => $id_entrenador,
                     "id_sede" => $id_sede,
                     "nombre_entrenamiento" => $nombre,

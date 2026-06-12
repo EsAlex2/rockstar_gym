@@ -17,20 +17,6 @@ class userController extends Controllers
         $this->model = $this->cargarModels('usuariosModels');
     }
 
-    private function response(bool $success, string $message, $data = null)
-    {
-        $response = [
-            "status" => $success ? "success" : "error",
-            "message" => $message
-        ];
-        
-        if ($data !== null) {
-            $response["data"] = $data;
-        }
-        
-        return json_encode($response, JSON_UNESCAPED_UNICODE);
-    }
-
     public function listarUsuarios()
     {
         $data = $this->model->obtenerUsuarios();
@@ -100,10 +86,6 @@ class userController extends Controllers
             }
         }
 
-        /**
-         * almacenamos los datos que vienen del model en una variable
-         */
-
         $id_estatus = (int)$datos['id_estatus'];
         $id_rol = (int)$datos['id_rol'];
         $username = trim($datos['username']);
@@ -154,20 +136,3 @@ class userController extends Controllers
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
 }
-
-$prueba = new userController($pdo);
-
-// $datos = [
-//     "id_estatus" => 1,
-//     "id_rol"     => 1, 
-//     "username"   => "madrida753",
-//     "email_user" => "nuevo.usuario@correo.com"
-// ];
-
-// $datosPass = [
-//     "username" => "madrida753",
-//     "email_user" => "nuevo.usuario@correo.com",
-//     "password_hash" => "madrida753"
-// ];
-
-echo $prueba->listarUsuariosPorNombre("madrida753");
