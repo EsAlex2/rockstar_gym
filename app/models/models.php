@@ -1,7 +1,6 @@
 <?php 
 
 require_once __DIR__ . '/../core/conn.php';
-header('Content-Type: application/json; charset=utf-8');
 
     class Model {
         private $pdo;

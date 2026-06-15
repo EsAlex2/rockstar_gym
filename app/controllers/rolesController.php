@@ -4,9 +4,8 @@ require_once __DIR__ . '/../controllers/controllers.php';
 
 /* * rolesController.php
  * Autor: Alex Madrid
- * Fecha: 14/06/2026
- * Nota: Refactorizado según el nuevo patrón de respuestas estandarizadas.
- */
+ * Refactorizado: 15/06/2026
+ * */
 
 class rolesController extends Controllers
 {
@@ -52,51 +51,44 @@ class rolesController extends Controllers
             "descripcion" => $data['descripcion'] ?? null
         ];
 
-        return $this->response(true, "Rol Encontrado con Exito", $response);
+        return $this->response(true, "Rol Encontrado con Éxito", $response);
     }
 
     /**
-     * Registra un nuevo rol validando que los campos requeridos no estén vacíos
+     * Registra un nuevo rol con parámetros individuales e independientes
      */
-    public function crearNuevoRol(array $datos)
+    public function crearNuevoRol(string $nombre_rol, string $descripcion)
     {
-        $camposObligatorios = ['nombre_rol', 'descripcion'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        // Validación individualizada y sanitización temprana
+        if (empty(trim($nombre_rol)) || empty(trim($descripcion))) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $nombre_rol  = trim($datos['nombre_rol']);
-        $descripcion = trim($datos['descripcion']);
+        $nombre_rol  = trim($nombre_rol);
+        $descripcion = trim($descripcion);
 
-        // Llamar al modelo (el cual ya pasa a minúsculas y valida duplicados)
+        // Llamar al modelo
         $request = $this->model->crearRol($nombre_rol, $descripcion);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Rol creado con éxito", $request['data'] ?? null);
     }
 
     /**
-     * Actualiza un rol existente validando su ID y coherencia de datos
+     * Actualiza un rol existente con parámetros separados y tipados
      */
-    public function actualizarDatosRol(array $datos)
+    public function actualizarDatosRol(int $id_rol, string $nombre_rol, string $descripcion)
     {
-        $camposObligatorios = ['id_rol', 'nombre_rol', 'descripcion'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        // Se valida que el ID sea correcto y que las cadenas no estén vacías
+        if (empty($id_rol) || empty(trim($nombre_rol)) || empty(trim($descripcion))) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $id_rol      = (int)$datos['id_rol'];
-        $nombre_rol  = trim($datos['nombre_rol']);
-        $descripcion = trim($datos['descripcion']);
+        $nombre_rol  = trim($nombre_rol);
+        $descripcion = trim($descripcion);
 
         // Enviar la solicitud de actualización al modelo
         $request = $this->model->actualizarRol($id_rol, $nombre_rol, $descripcion);
@@ -105,15 +97,6 @@ class rolesController extends Controllers
             return $this->response(false, $request['error']);
         }
 
-        // Adaptamos el mensaje de éxito usando el retornado por el modelo o uno genérico estructurado
-        $mensajeExito = $request['message'] ?? "Rol actualizado exitosamente";
-
-        return $this->response(true, $mensajeExito, $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Rol actualizado exitosamente", $request['data'] ?? null);
     }
 }
-
-$pruebas = new rolesController($pdo);
-
-$datos = ["id_rol" => 8, "nombre_rol" => "rol actualizado", "descripcion" => "probando la actualizacion"];
-
-echo $pruebas->actualizarDatosRol($datos);

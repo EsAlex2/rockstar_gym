@@ -1,10 +1,9 @@
-<?php 
+<?php
 require_once __DIR__ . '/../controllers/controllers.php';
 
-/* 
- * userController.php
+/* * userController.php
  * Autor: Alex Madrid
- * Fecha: 06/06/2026
+ * Refactorizado: 15/06/2026
  */
 
 class userController extends Controllers
@@ -20,11 +19,12 @@ class userController extends Controllers
     public function listarUsuarios()
     {
         $data = $this->model->obtenerUsuarios();
-        
+
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
-        
+
+        // Retornamos de forma explícita el estado true y los datos del modelo
         return $this->response(true, "Usuarios obtenidos exitosamente", $data);
     }
 
@@ -32,11 +32,12 @@ class userController extends Controllers
     {
         $data = $this->model->obtenerUsuariosPorUsername($user);
 
-        if (isset($data['error'])) {
-            return $this->response(false, $data['error']);
+        if (isset($data['error']) || !$data) {
+            return $this->response(false, $data['error'] ?? "Usuario no encontrado");
         }
 
         $response = [
+            "id" => $data['id'] ?? null,
             "estatus" => $data['id_estatus'] ?? null,
             "persona" => $data['id_persona'] ?? null,
             "rol" => $data['id_rol'] ?? null,
@@ -44,95 +45,67 @@ class userController extends Controllers
             "correo" => $data['email_user'] ?? null
         ];
 
-        return $this->response(true, "Usuario Encontrado con Exito", $response);
+        return $this->response(true, "Usuario Encontrado con Éxito", $response);
     }
 
-    public function crearUsuarios(array $datos)
+    public function crearUsuarios(int $id_persona, int $id_rol, string $email)
     {
-        $camposObligatorios = ['id_persona', 'id_rol', 'email_user'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        if (empty($id_persona) || empty($id_rol) || empty(trim($email))) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $id_persona = (int)$datos['id_persona'];
-        $id_rol = (int)$datos['id_rol'];
-        $email_user = trim($datos['email_user']);
-
-        // Validar formato de email
-        if (!filter_var($email_user, FILTER_VALIDATE_EMAIL)) {
-            return $this->response(false, "El formato del correo electrónico no es válido");
-        }
-
-        // Llamar al modelo
-        $request = $this->model->crearUsuarios($id_persona, $id_rol, $email_user);
-
-        // El modelo siempre retorna un array con 'success' o 'error'
-        if (isset($request['error'])) {
-            return $this->response(false, $request['error']);
-        }
-
-        return $this->response(true, $request['message'], $request['data'] ?? null);
-    }
-
-    public function actualizarUsuarios(array $datos){
-
-        $camposObligatorios = ['id_estatus', 'id_rol', 'username', 'email_user'];
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
-        }
-
-        $id_estatus = (int)$datos['id_estatus'];
-        $id_rol = (int)$datos['id_rol'];
-        $username = trim($datos['username']);
-        $email_user = trim($datos['email_user']);
-
-        // Validar formato de email
-        if (!filter_var($email_user, FILTER_VALIDATE_EMAIL)) {
-            return $this->response(false, "El formato del correo electrónico no es válido");
-        }
-
-        $request = $this->model->actualizarUsername($id_estatus, $id_rol, $username, $email_user);
-
-        if (isset($request['error'])) {
-            return $this->response(false, $request['error']);
-        }
-
-        return $this->response(true, $request['message'], $request['data'] ?? null);
-    }
-
-    public function cambiarContraseña(array $datosPass){
-
-        $camposObligatorios = ['username', 'email_user', 'password_hash'];
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datosPass[$campo]) || trim($datosPass[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
-        }
-
-        /**
-         * almacenamos los datos que vienen del model en una variable
-         */
-
-        $username = trim($datosPass['username']);
-        $email = trim($datosPass['email_user']);
-        $pass = trim($datosPass['password_hash']);
-
-        // Validar formato de email
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->response(false, "El formato del correo electrónico no es válido");
         }
 
-        $request = $this->model->cambiarContraseña($username, $email, $pass);
+        $request = $this->model->crearUsuarios($id_persona, $id_rol, $email);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Usuario creado con éxito", $request['data'] ?? null);
+    }
+
+    public function actualizarUsuarios(int $id, int $id_estatus, int $id_rol, string $username, string $email)
+    {
+        if (empty($id) || empty($id_estatus) || empty($id_rol) || empty(trim($username)) || empty(trim($email))) {
+            return $this->response(false, "Todos los campos son obligatorios");
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response(false, "El formato del correo electrónico no es válido");
+        }
+
+        // Enviamos las variables reales sanitizadas al modelo
+        $request = $this->model->actualizarUsername($id, $id_estatus, $id_rol, $username, $email);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Usuario actualizado", $request['data'] ?? null);
+    }
+
+    public function cambiarContraseña(string $username, string $email, string $pass)
+    {
+        if (empty(trim($username)) || empty(trim($email)) || empty(trim($pass))) {
+            return $this->response(false, "Todos los campos son obligatorios");
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response(false, "El formato del correo electrónico no es válido");
+        }
+
+        // Encriptación nativa recomendada antes de impactar el modelo
+        $passwordHash = password_hash($pass, PASSWORD_BCRYPT);
+
+        $request = $this->model->cambiarContraseña($username, $email, $passwordHash);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Contraseña modificada correctamente", $request['data'] ?? null);
     }
 }

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../controllers/controllers.php';
 
 /* * planesController.php
  * Autor: Alex Madrid
- * Fecha: 14/06/2026
+ * Refactorizado: 15/06/2026
  */
 
 class planesController extends Controllers
@@ -32,7 +32,7 @@ class planesController extends Controllers
     }
 
     /**
-     * Busca la información detallada de un plan por su ID
+     * Busca la información detallada de un plan por su nombre
      */
     public function listarPlanPorNombre(string $nombre_plan)
     {
@@ -48,22 +48,16 @@ class planesController extends Controllers
     /**
      * Registra un nuevo plan de suscripción en el sistema
      */
-    public function crearPlan(array $datos)
+    public function crearPlan(string $nombre_plan, float $precio, int $duracion_dias, ?string $descripcion = null)
     {
-        // Campos obligatorios requeridos según la estructura NOT NULL de la tabla
-        $camposObligatorios = ['nombre_plan', 'precio', 'duracion_dias'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        // Los campos obligatorios se evalúan directamente controlando tipos vacíos o nulos
+        if (empty(trim($nombre_plan)) || !isset($precio) || empty($duracion_dias)) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $nombre_plan   = trim($datos['nombre_plan']);
-        $descripcion   = isset($datos['descripcion']) ? trim($datos['descripcion']) : '';
-        $precio        = (float)$datos['precio'];
-        $duracion_dias = (int)$datos['duracion_dias'];
-
+        $nombre_plan   = trim($nombre_plan);
+        $descripcion   = $descripcion !== null ? trim($descripcion) : '';
+        
         // Validación de lógica de negocio basándonos en los CONSTRAINT de la base de datos
         if ($precio < 0) {
             return $this->response(false, "El precio del plan no puede ser un valor negativo");
@@ -80,28 +74,21 @@ class planesController extends Controllers
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Plan creado con éxito", $request['data'] ?? null);
     }
 
     /**
      * Actualiza un plan existente permitiendo cambiar su estado y datos
      */
-    public function actualizarPlan(array $datos)
+    public function actualizarPlan(int $id_plan, int $id_estatus, string $nombre_plan, float $precio, int $duracion_dias, ?string $descripcion = null)
     {
-        $camposObligatorios = ['id', 'id_estatus', 'nombre_plan', 'precio', 'duracion_dias'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        // Se valida la existencia e integridad de los datos primitivos requeridos
+        if (empty($id_plan) || empty($id_estatus) || empty(trim($nombre_plan)) || !isset($precio) || empty($duracion_dias)) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $id_plan       = (int)$datos['id'];
-        $id_estatus    = (int)$datos['id_estatus'];
-        $nombre_plan   = trim($datos['nombre_plan']);
-        $descripcion   = isset($datos['descripcion']) ? trim($datos['descripcion']) : '';
-        $precio        = (float)$datos['precio'];
-        $duracion_dias = (int)$datos['duracion_dias'];
+        $nombre_plan   = trim($nombre_plan);
+        $descripcion   = $descripcion !== null ? trim($descripcion) : '';
 
         // Validaciones previas de los CONSTRAINT de la tabla antes de la ejecución SQL
         if ($precio < 0) {
@@ -112,26 +99,19 @@ class planesController extends Controllers
             return $this->response(false, "La duración en días debe ser un número entero mayor a cero");
         }
 
-        // Llamar al modelo
+        // Llamar al modelo pasando las variables sanitizadas
         $request = $this->model->actualizarPlan($id_plan, $nombre_plan, $descripcion, $precio, $duracion_dias, $id_estatus);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Plan actualizado exitosamente", $request['data'] ?? null);
     }
 }
 
+// --- Zona de Pruebas Adaptada ---
 $pruebas = new planesController($pdo);
 
-$datos = [
-    "id" => 1,
-    "id_estatus" => 1,
-    "nombre_plan" => "plan2",
-    "descripcion" => "plan de pruebas",
-    "precio" => 1.0,
-    "duracion_dias" => 10
-];
-
-echo $pruebas->actualizarPlan($datos);
+// Pasamos los parámetros de forma limpia, separada y respetando los tipos nativos
+echo $pruebas->actualizarPlan(1, 1, "plan2", 1.0, 10, "plan de pruebas");

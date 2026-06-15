@@ -1,4 +1,5 @@
 <?php 
+    ob_start();
 
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
@@ -14,7 +15,7 @@
 
     //URL BASE PARA USO GLOBAL EN EL SISTEMA
 
-    define('URL_BASE', 'http://localhost/gym'); 
+    define('URL_BASE', 'http://localhost/rockstar_gym'); 
 
     //nombre del sitio 
     define('SITE_NAME', 'ROCKSTAR GYM');

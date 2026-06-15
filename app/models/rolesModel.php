@@ -35,7 +35,7 @@ class rolesModel extends Model
                 return ["error" => "Error de conexion a la base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("SELECT nombre_rol, descripcion FROM administracion.roles");
+            $stmt = $this->pdo->prepare("SELECT * FROM administracion.roles");
             $stmt->execute();
             $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

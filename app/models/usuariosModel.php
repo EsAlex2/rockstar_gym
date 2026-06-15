@@ -222,15 +222,15 @@ class usuariosModels extends Model
         }
     }
 
-    public function actualizarUsername(int $estatus_id, int $rol_id, string $username, string $email)
+    public function actualizarUsername(int $id_usuario, int $estatus_id, int $rol_id, string $username, string $email)
     {
         try {
             if (!$this->pdo) {
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE username = :username");
-            $checkUser->bindParam(':username', $username);
+            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE id_usuario = :id_usuario");
+            $checkUser->bindParam(':id_usuario', $id_usuario);
             $checkUser->execute();
 
             if ($checkUser->fetchColumn() == 0) {
@@ -247,8 +247,8 @@ class usuariosModels extends Model
 
             $updateUsers = $this->pdo->prepare("UPDATE administracion.usuarios 
                 SET id_estatus = :estatus, id_rol = :rol, email_user = :email, actualizado_en = NOW()
-                WHERE username = :username");
-
+                WHERE id_usuario = :id_usuario");
+                   
             $updateUsers->bindParam(":estatus", $estatus_id, PDO::PARAM_INT);
             $updateUsers->bindParam(":rol", $rol_id, PDO::PARAM_INT);
             $updateUsers->bindParam(":email", $email);
