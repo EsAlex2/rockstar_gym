@@ -12,7 +12,7 @@ require_once __DIR__ . '/../core/conn.php';
  * ==============================================================================
  */
 
-class entrendorModel extends Model
+class entrenadorModel extends Model
 {
     protected $pdo;
 
@@ -77,7 +77,10 @@ class entrendorModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $sql = $this->pdo->prepare("SELECT id_estatus, id_persona, especialidad FROM administracion.entrenadores");
+            $sql = $this->pdo->prepare("SELECT e.nombre_estatus As estatus, p.primer_nombre || ' ' || p.primer_apellido AS persona, especialidad 
+            FROM administracion.entrenadores a
+            INNER JOIN administracion.estatus e ON a.id_estatus = e.id
+            INNER JOIN administracion.personas p ON a.id_persona = p.id");
             $sql->execute();
             $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
 

@@ -92,7 +92,7 @@ class planModel extends Model
     /**
      * Busca un plan específico por su ID trayendo el nombre del estatus mediante un INNER JOIN.
      */
-    public function buscarPlanPorId(int $id_plan)
+    public function buscarPlanPorNombre(string $nombre_plan)
     {
         try {
             if (!$this->pdo) {
@@ -100,8 +100,8 @@ class planModel extends Model
             }
 
             // 1era Validación: Verificar si el plan existe en la tabla
-            $checkPlan = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.planes WHERE id = :id");
-            $checkPlan->bindParam(':id', $id_plan, PDO::PARAM_INT);
+            $checkPlan = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.planes WHERE nombre_plan = :nombre_plan");
+            $checkPlan->bindParam(':nombre_plan', $nombre_plan, PDO::PARAM_STR);
             $checkPlan->execute();
 
             if ($checkPlan->fetchColumn() == 0) {
@@ -112,20 +112,14 @@ class planModel extends Model
             $buscarInfo = $this->pdo->prepare("SELECT a.id, b.nombre_estatus AS Estatus, a.nombre_plan AS Plan, a.descripcion AS Descripcion, a.precio AS Precio, a.duracion_dias AS Duracion
                 FROM administracion.planes a
                 INNER JOIN administracion.estatus b ON a.id_estatus = b.id
-                WHERE a.id = :id");
+                WHERE a.nombre_plan = :nombre_plan");
 
-            $buscarInfo->bindParam(':id', $id_plan, PDO::PARAM_INT);
+            $buscarInfo->bindParam(':nombre_plan', $nombre_plan, PDO::PARAM_STR);
             $buscarInfo->execute();
 
             $resultado = $buscarInfo->fetch(PDO::FETCH_ASSOC);
 
-            return [
-                "success" => true,
-                "message" => "Plan encontrado exitosamente",
-                "data" => [
-                    $resultado
-                ]
-            ];
+            return [$resultado];
         } catch (PDOException $e) {
             return ["error" => "Error al buscar el plan: " . $e->getMessage()];
         }

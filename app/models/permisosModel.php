@@ -30,36 +30,25 @@ class permisosModel extends Model
 
     public function obtenerPermisos()
     {
-        $this->mensajes = [
-            'Error de conexion a la base de datos',
-            'Error inesperado para obtener los permisos registrados'
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexion a la base de datos"];
             }
 
             $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM administracion.permisos");
             $stmt->execute();
 
-            return json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+            return empty($stmt) ? ["error" => "No hay usuarios registrados"] : $stmt;
         } catch (PDOException $e) {
-            return $this->mensajes[1] . $e->getMessage();
+            return ["error" => "Error inesperado para obtener los permisos registrados" . $e->getMessage()];
         }
     }
 
     public function obtenerPermisoPorNombre(string $nombre_permiso)
     {
-        $this->mensajes = [
-            'Error de conexion a la base de datos',
-            "No se encontró el permiso: {$nombre_permiso} en la base de datos",
-            "Error inesperado para obtener el permiso {$nombre_permiso}"
-        ];
-
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexion a la base de datos"];
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.permisos WHERE nombre_permiso = :nombre_permiso");
@@ -67,101 +56,51 @@ class permisosModel extends Model
             $checkStmt->execute();
 
             if ($checkStmt->fetchColumn() == 0) {
-                return $this->mensajes[1];
+                return ["error" => "No se encontro registro de ese permiso en nuestra base de datos"];
             }
 
             $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM administracion.permisos WHERE nombre_permiso = :nombre_permiso");
             $stmt->bindParam(':nombre_permiso', $nombre_permiso);
             $stmt->execute();
-            return json_encode($stmt->fetch(PDO::FETCH_ASSOC));
+            return [
+                "success" => true,
+                "message" => "Pemiso encontrado exitosamente",
+                "data" => [
+                    "nombre_permiso" => $nombre_permiso
+                ]
+            ];
         } catch (PDOException $e) {
-            return json_encode($this->mensajes[2] . ": " . $e->getMessage());
+            return ["error" => "Error inesperado para obtener el permiso {$nombre_permiso}" . $e->getMessage()];
         }
     }
 
     public function crearPermiso(string $nombre_permiso, string $descripcion)
     {   
-        $permiso_lower = strtolower($nombre_permiso);
-
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "El permiso {$permiso_lower} ya existe",
-            "Error inesperado para crear el permiso {$permiso_lower}",
-            "Permiso creado exitosamente!"
-        ];
+        $permiso = strtolower($nombre_permiso);
 
         try {
             if (!$this->pdo) {
-                return $this->mensajes[0];
+                return ["error" => "Error de conexion a la base de datos"];
             }
 
             $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.permisos WHERE nombre_permiso = :nombre_permiso");
-            $checkStmt->bindParam(':nombre_permiso', $permiso_lower);
+            $checkStmt->bindParam(':nombre_permiso', $permiso);
             $checkStmt->execute();
 
             if ($checkStmt->fetchColumn() > 0) {
-                return $this->mensajes[1];
+                return ["error" => "El permiso: $permiso ya existe en la base de datos"];
             }
 
             $stmt = $this->pdo->prepare("INSERT INTO administracion.permisos (nombre_permiso, descripcion) VALUES (:nombre_permiso, :descripcion)");
-            $stmt->bindParam(':nombre_permiso', $permiso_lower);
+            $stmt->bindParam(':nombre_permiso', $permiso);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->execute();
-            return json_encode([
-                "message" => $this->mensajes[3]
-            ]);
+            return [
+                "success" => true,
+                "message" => "Permiso Creado Exitosamente"
+            ];
         } catch (PDOException $e) {
-            return json_encode($this->mensajes[2] . ": " . $e->getMessage());
-        }
-    }
-
-    public function actualizarPermisos(int $id_permiso, string $nombre_permiso, string $descripcion)
-    {   
-        $permiso_lower = strtolower($nombre_permiso);
-
-        $this->mensajes = [
-            "Error de conexion a la base de datos",
-            "No se encontró el permiso: {$permiso_lower} en la base de datos",
-            "Error inesperado para actualizar el permiso {$permiso_lower}",
-            "Permiso actualizado exitosamente!"
-        ];
-
-        try {
-            if (!$this->pdo) {
-                return $this->mensajes[0];
-            }
-
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.permisos WHERE id = :id_permiso");
-            $checkStmt->bindParam(':id_permiso', $id_permiso);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() == 0) {
-                return $this->mensajes[1];
-            }
-
-            $stmt = $this->pdo->prepare("UPDATE administracion.permisos SET nombre_permiso = :nombre_permiso, descripcion = :descripcion WHERE id = :id_permiso");
-            $stmt->bindParam(':id_permiso', $id_permiso);
-            $stmt->bindParam(':nombre_permiso', $permiso_lower);
-            $stmt->bindParam(':descripcion', $descripcion);
-            $stmt->execute();
-            return $this->mensajes[3];
-        } catch (PDOException $e) {
-            return json_encode($this->mensajes[2] . ": " . $e->getMessage());
+            return ["error" => "Error inesperado para crear los permisos" . $e->getMessage()];
         }
     }
 }
-
-// $modelsPermisos = new PermisosModel($pdo);
-// echo $modelsPermisos->obtenerPermisos();
-
-// echo "<hr>";
-
-// echo $modelsPermisos->obtenerPermisoPorNombre("mi_perfil.ver");
-
-// echo "<hr>";
-
-// echo $modelsPermisos->crearPermiso("seguridad.root", "adad");
-
-// echo "<hr>";
-
-// echo $modelsPermisos->actualizarPermisos(21, "SEGURIñAD.ROOT", "TOOOOT");

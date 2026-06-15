@@ -15,7 +15,6 @@ CREATE TABLE administracion.roles (
     descripcion TEXT,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     act_en TIMESTAMP
-
 );
 
 -- PERMISOS

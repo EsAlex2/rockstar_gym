@@ -43,6 +43,19 @@ class EntrenamientosModel extends Model
             }
 
             /**
+             * validamos que el entrenamiento no este registrado previamente en el sistema
+             */
+
+            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.entrenamiento WHERE id_entrenador = :id_entrenador AND id_sede = :id_sede AND nombre_entrenamiento = :nombre");
+            $checkDuplicate->bindParam(":id_entrenador", $id_entrenador, PDO::PARAM_INT);
+            $checkDuplicate->bindParam(":id_sede", $id_sede, PDO::PARAM_INT);
+            $checkDuplicate->bindParam(":nombre", $nombre, PDO::PARAM_STR);
+            $checkDuplicate->execute();
+
+            if($checkDuplicate->fetchColumn() > 0){
+                return ["error" => "Este entrenamiento ha sido previamente registrado"];
+            }
+            /**
              * preparamos los datos para ingresarlos en la base de datos
              */
             $estatus_activo = 1;
@@ -98,15 +111,15 @@ class EntrenamientosModel extends Model
         }
     }
 
-    public function listarEntrenamientosid(int $id)
+    public function listarEntrenamientosPorNombre(string $nombre)
     {
         try {
             if (!$this->pdo) {
                 return ["error" => "Error de conexion en la base de datos"];
             }
 
-            $check = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.entrenamiento WHERE  id = :id_entrenamiento");
-            $check->bindParam(':id_entrenamiento', $id, PDO::PARAM_INT);
+            $check = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.entrenamiento WHERE  nombre_entrenamiento = :nombre");
+            $check->bindParam(':nombre', $nombre, PDO::PARAM_STR);
             $check->execute();
 
             if ($check->fetchColumn() == 0) {
@@ -120,17 +133,17 @@ class EntrenamientosModel extends Model
                 INNER JOIN administracion.entrenadores c ON a.id_entrenador = c.id
                 INNER JOIN administracion.personas p ON c.id_persona = p.id
                 INNER JOIN administracion.sedes d ON a.id_sede = d.id
-                WHERE a.id = :id_entrenamiento
+                WHERE a.nombre_entrenamiento = :nombre
             ");
 
-            $lista->bindParam(":id_entrenamiento", $id, PDO::PARAM_INT);
+            $lista->bindParam(":nombre", $nombre, PDO::PARAM_STR);
             $lista->execute();
 
             $resultado = $lista->fetch(PDO::FETCH_ASSOC);
 
             return empty($resultado) ? ["error" => "No hay entrenamientos registrados"] : $resultado;
         } catch (PDOException $e) {
-            return ["error" => "Error al obtener listado de entrenamientos " . $e->getMessage()];
+            return ["error" => "Error al obtener el entrenamiento " . $e->getMessage()];
         }
     }
 
@@ -163,7 +176,7 @@ class EntrenamientosModel extends Model
             }
 
             $update = $this->pdo->prepare("UPDATE administracion.entrenamiento
-            SET id_estatus = :id_estatus, id_entrenador = :id_entrenador, id_sede = :id_sede, nombre_entrenamiento = :nombre, descripcion = :descripcion, actualizado_en = NOW()");
+            SET id_entrenador = :id_entrenador, id_sede = :id_sede, nombre_entrenamiento = :nombre, descripcion = :descripcion, actualizado_en = NOW()");
 
             $update->bindParam(":id_entrenador", $id_entrenador, PDO::PARAM_INT);
             $update->bindParam(":id_sede", $id_sede, PDO::PARAM_INT);
