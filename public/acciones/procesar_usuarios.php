@@ -1,66 +1,98 @@
 <?php
-require_once __DIR__ . '/../../config/init.php';
-require_once __DIR__ . '/../../controllers/userController.php';
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
-// Asegurar que solo peticiones POST o JSON procesen esta vía
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
+
+require_once __DIR__ . '/../config/init.php';
+require_once __DIR__ . '/../app/controllers/userController.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificación de seguridad básica
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["status" => false, "message" => "Sesión no autorizada."]);
+    echo json_encode(["success" => false, "message" => "Sesión inválida o expirada."], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// Reemplazar '$pdo' por la variable global o de conexión real que inicializas en init.php
-$db = $pdo ?? null; 
-if (!$db) {
-    echo json_encode(["status" => false, "message" => "Error de conexión a la base de datos."]);
-    exit;
-}
+$db = $pdo ?? null;
+$userCtrl = new userController($db);
 
-$controller = new userController($db);
 $action = $_GET['action'] ?? '';
 
 try {
     switch ($action) {
         case 'crear':
             $id_persona = isset($_POST['id_persona']) ? (int)$_POST['id_persona'] : 0;
-            $id_rol = isset($_POST['id_rol']) ? (int)$_POST['id_rol'] : 0;
-            $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+            $id_rol     = isset($_POST['id_rol']) ? (int)$_POST['id_rol'] : 0;
+            $email      = isset($_POST['email']) ? trim($_POST['email']) : '';
 
-            $resultado = $controller->crearUsuarios($id_persona, $id_rol, $email);
-            echo json_encode($resultado);
+            if ($id_persona <= 0) {
+                echo json_encode(["success" => false, "message" => "Debe buscar y seleccionar una persona por cédula."], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            if ($id_rol <= 0) {
+                echo json_encode(["success" => false, "message" => "Debe seleccionar un rol para el usuario."], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            $respuesta = $userCtrl->crearUsuario($id_persona, $id_rol, $email);
+
+            if (is_string($respuesta)) {
+                $respuesta = json_decode($respuesta, true);
+            }
+
+            if (isset($respuesta['status'])) {
+                $respuesta['success'] = $respuesta['status'];
+            }
+
+            echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
             break;
 
         case 'actualizar':
             $id_usuario = isset($_POST['id_usuario']) ? (int)$_POST['id_usuario'] : 0;
-            $id_estatus = isset($_POST['id_estatus']) ? (int)$_POST['id_estatus'] : 0;
-            $id_rol = isset($_POST['id_rol']) ? (int)$_POST['id_rol'] : 0;
-            $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-            $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+            $id_estatus = isset($_POST['id_estatus']) ? (int)$_POST['id_estatus'] : 1;
+            $id_rol     = isset($_POST['id_rol']) ? (int)$_POST['id_rol'] : 0;
+            $username   = isset($_POST['username']) ? trim($_POST['username']) : '';
+            $email      = isset($_POST['email']) ? trim($_POST['email']) : '';
 
-            $resultado = $controller->actualizarUsuarios($id_usuario, $id_estatus, $id_rol, $username, $email);
-            echo json_encode($resultado);
+            $respuesta = $userCtrl->actualizarUsuarios($id_usuario, $id_estatus, $id_rol, $username, $email);
+
+            if (is_string($respuesta)) {
+                $respuesta = json_decode($respuesta, true);
+            }
+
+            if (isset($respuesta['status'])) {
+                $respuesta['success'] = $respuesta['status'];
+            }
+
+            echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
             break;
 
         case 'cambiar_pass':
             $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-            $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-            $pass = isset($_POST['password']) ? trim($_POST['password']) : '';
+            $email    = isset($_POST['email']) ? trim($_POST['email']) : '';
+            $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-            $resultado = $controller->cambiarContraseña($username, $email, $pass);
-            echo json_encode($resultado);
+            $respuesta = $userCtrl->cambiarContraseña($username, $email, $password);
+
+            if (is_string($respuesta)) {
+                $respuesta = json_decode($respuesta, true);
+            }
+
+            if (isset($respuesta['status'])) {
+                $respuesta['success'] = $respuesta['status'];
+            }
+
+            echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
             break;
 
         default:
-            echo json_encode(["status" => false, "message" => "Acción no válida."]);
+            echo json_encode(["success" => false, "message" => "Acción no permitida o desconocida."], JSON_UNESCAPED_UNICODE);
             break;
     }
 } catch (Exception $e) {
-    echo json_encode(["status" => false, "message" => "Error del sistema: " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Error interno: " . $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }
-exit;

@@ -137,7 +137,7 @@ class ClientesModel extends Model
              * tabla de clientes
              */
 
-            $sql = $this->pdo->prepare("SELECT b.nombre_estatus As Estatus, c.primer_nombre As Nombre, c.primer_apellido As Apellido, fecha_inscripcion, codigo_acceso 
+            $sql = $this->pdo->prepare("SELECT b.nombre_estatus As Estatus, c.primer_nombre || '  ' || c.primer_apellido As Cliente, fecha_inscripcion, codigo_acceso 
             FROM administracion.clientes a
             INNER JOIN administracion.estatus b ON a.id_estatus = b.id
             INNER JOIN administracion.personas c ON a.id_persona = c.id");

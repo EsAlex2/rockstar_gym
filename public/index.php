@@ -44,7 +44,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 Bienvenido de nuevo
             </h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Gestión de Transporte e Identificación institucional
+                Gestión de Gimnasios
             </p>
         </div>
 
@@ -101,42 +101,7 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
     </div>
 
-    <script>
-        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-        const themeToggleBtn = document.getElementById('theme-toggle');
-
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-            themeToggleLightIcon.classList.remove('hidden');
-        } else {
-            document.documentElement.classList.remove('dark');
-            themeToggleDarkIcon.classList.remove('hidden');
-        }
-
-        themeToggleBtn.addEventListener('click', function () {
-            themeToggleDarkIcon.classList.toggle('hidden');
-            themeToggleLightIcon.classList.toggle('hidden');
-
-            if (localStorage.getItem('color-theme')) {
-                if (localStorage.getItem('color-theme') === 'light') {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('color-theme', 'dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('color-theme', 'light');
-                }
-            } else {
-                if (document.documentElement.classList.contains('dark')) {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('color-theme', 'light');
-                } else {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('color-theme', 'dark');
-                }
-            }
-        });
-    </script>
+    <script src="<?= URL_BASE ?>/public/js/auth.js"></script>
 </body>
 
 </html>

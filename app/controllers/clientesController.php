@@ -38,11 +38,9 @@ class ClientesController extends Controllers
      */
     public function crearClientes(int $persona)
     {
-        $obligatorio = 'id_persona';
-
-        // Validación de campos obligatorios
-        if (!isset($obligatorio) || trim($obligatorio) === '') {
-            return $this->response(false, "Todos los campos son obligatorios");
+        // Validamos que el ID de la persona sea mayor a 0
+        if ($persona <= 0) {
+            return $this->response(false, "El ID de la persona es obligatorio y debe ser válido.");
         }
         
         $id_persona = (int)$persona;
@@ -58,3 +56,8 @@ class ClientesController extends Controllers
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
 }
+
+// $pruebas = new ClientesController($pdo);
+
+// echo $pruebas->listarClientes();
+

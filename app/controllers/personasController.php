@@ -43,6 +43,7 @@ class PersonasController extends Controllers
         }
 
         $resultado = [
+            "id" => $data['id'] ?? null, // <--- ¡ESTA ES LA LÍNEA CLAVE QUE FALTABA!
             "estatus" => $data['estatus'] ?? null,
             "cedula" => $data['cedula_identidad'] ?? null,
             "nombre" => ($data['primer_nombre'] ?? '') . ' ' . ($data['primer_apellido'] ?? ''),
@@ -176,3 +177,7 @@ class PersonasController extends Controllers
         return $this->response(true, $request['success'] ?? $request['message'] ?? "Datos actualizados correctamente", $request['data'] ?? null);
     }
 }
+
+// $personas = new PersonasController($pdo);
+
+// echo $personas->crearNuevaPersona(1, '29571480', 'Adriana', 'Estrada', '13/11/2002', '04127698974', 'aaec1311@gmail.com', 'la pastora', 'De los Angeles', 'Castillo');

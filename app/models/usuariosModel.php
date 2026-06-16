@@ -162,7 +162,8 @@ class usuariosModels extends Model
                 return ["error" => "El correo electrónico ya está registrado por otro usuario"];
             }
 
-            $checkRol = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id = :rol_id");
+            // CORREGIDO: Cambio de columna id a id_rol conforme a tu esquema de DB
+            $checkRol = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id_rol = :rol_id");
             $checkRol->bindParam(':rol_id', $rol_id, PDO::PARAM_INT);
             $checkRol->execute();
 
@@ -234,9 +235,10 @@ class usuariosModels extends Model
             $checkUser->execute();
 
             if ($checkUser->fetchColumn() == 0) {
-                return ["error" => "No se encontró usuario con username: {$username}"];
+                return ["error" => "No se encontró usuario con el identificador proporcionado"];
             }
 
+            // CORREGIDO: Uso de para consistencia relacional externa
             $checkRoles = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.roles WHERE id = :id_rol");
             $checkRoles->bindParam(':id_rol', $rol_id);
             $checkRoles->execute();
@@ -245,14 +247,15 @@ class usuariosModels extends Model
                 return ["error" => "El rol especificado no existe en la base de datos, contacte a Soporte!"];
             }
 
+            // CORREGIDO: Eliminación de bindParam del campo :username que causaba fallo fatal en PDO execute()
             $updateUsers = $this->pdo->prepare("UPDATE administracion.usuarios 
                 SET id_estatus = :estatus, id_rol = :rol, email_user = :email, actualizado_en = NOW()
                 WHERE id_usuario = :id_usuario");
-                   
+
             $updateUsers->bindParam(":estatus", $estatus_id, PDO::PARAM_INT);
             $updateUsers->bindParam(":rol", $rol_id, PDO::PARAM_INT);
             $updateUsers->bindParam(":email", $email);
-            $updateUsers->bindParam(":username", $username);
+            $updateUsers->bindParam(":id_usuario", $id_usuario, PDO::PARAM_INT);
             $updateUsers->execute();
 
             return ["success" => true, "message" => "Usuario actualizado exitosamente"];
@@ -263,7 +266,6 @@ class usuariosModels extends Model
 
     public function cambiarContraseña(string $username, string $email, string $password)
     {
-
         try {
             if (!$this->pdo) {
                 return ["error" => "Error de conexión a la base de datos"];
@@ -285,18 +287,16 @@ class usuariosModels extends Model
                 return ["error" => "No se encontró el usuario con el correo: {$email}"];
             }
 
-            $password_hash = password_hash($password, PASSWORD_BCRYPT);
-
+            // CORREGIDO: Removido el segundo hash redundante. Se mapea la clave que ya viene encriptada desde el Controlador.
             $updatePassword = $this->pdo->prepare("UPDATE administracion.usuarios 
                 SET password_hash = :pass, actualizado_en = NOW()
                 WHERE username = :username");
 
             $updatePassword->bindParam(":username", $username);
-            $updatePassword->bindParam(":pass", $password_hash);
+            $updatePassword->bindParam(":pass", $password);
             $updatePassword->execute();
 
             return ["success" => true, "message" => "Contraseña actualizada exitosamente"];
-
         } catch (PDOException $e) {
             return ["error" => "Error al actualizar usuario: " . $e->getMessage()];
         }

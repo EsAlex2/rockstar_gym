@@ -24,8 +24,36 @@ class userController extends Controllers
             return $this->response(false, $data['error']);
         }
 
-        // Retornamos de forma explícita el estado true y los datos del modelo
         return $this->response(true, "Usuarios obtenidos exitosamente", $data);
+    }
+
+    /**
+     * Registra un usuario procesando un username derivado y un hash seguro por defecto.
+     */
+    public function crearUsuario(int $id_persona, int $id_rol, string $email)
+    {
+        if ($id_persona <= 0 || $id_rol <= 0 || empty(trim($email))) {
+            return $this->response(false, "Todos los campos son obligatorios para el registro.");
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response(false, "El formato del correo electrónico no es válido.");
+        }
+
+        // Dividir el string en el arroba para tomar el prefijo como username inicial limpio
+        $username = strtolower(explode('@', $email)[0]);
+
+        // Contraseña por defecto para su primer acceso (el gimnasio puede indicarle esta)
+        $passwordProvisional = "Rockstar.2026";
+        $passwordHash = password_hash($passwordProvisional, PASSWORD_BCRYPT);
+
+        $request = $this->model->registrarUsuarios($id_persona, $id_rol, $username, $email, $passwordHash);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, "Usuario creado exitosamente. Su usuario es: '{$username}' y clave provisional: 'Rockstar.2026'", $request);
     }
 
     public function listarUsuariosPorNombre(string $user)
@@ -42,49 +70,29 @@ class userController extends Controllers
             "persona" => $data['id_persona'] ?? null,
             "rol" => $data['id_rol'] ?? null,
             "username" => $data['username'] ?? null,
-            "correo" => $data['email_user'] ?? null
+            "email" => $data['email_user'] ?? null
         ];
 
-        return $this->response(true, "Usuario Encontrado con Éxito", $response);
-    }
-
-    public function crearUsuarios(int $id_persona, int $id_rol, string $email)
-    {
-        if (empty($id_persona) || empty($id_rol) || empty(trim($email))) {
-            return $this->response(false, "Todos los campos son obligatorios");
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->response(false, "El formato del correo electrónico no es válido");
-        }
-
-        $request = $this->model->crearUsuarios($id_persona, $id_rol, $email);
-
-        if (isset($request['error'])) {
-            return $this->response(false, $request['error']);
-        }
-
-        return $this->response(true, $request['message'] ?? "Usuario creado con éxito", $request['data'] ?? null);
+        return $this->response(true, "Usuario encontrado", $response);
     }
 
     public function actualizarUsuarios(int $id, int $id_estatus, int $id_rol, string $username, string $email)
     {
         if (empty($id) || empty($id_estatus) || empty($id_rol) || empty(trim($username)) || empty(trim($email))) {
-            return $this->response(false, "Todos los campos son obligatorios");
+            return $this->response(false, "Todos los campos son obligatorios para actualizar");
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->response(false, "El formato del correo electrónico no es válido");
         }
 
-        // Enviamos las variables reales sanitizadas al modelo
         $request = $this->model->actualizarUsername($id, $id_estatus, $id_rol, $username, $email);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'] ?? "Usuario actualizado", $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Usuario actualizado exitosamente", $request['data'] ?? null);
     }
 
     public function cambiarContraseña(string $username, string $email, string $pass)
@@ -97,7 +105,6 @@ class userController extends Controllers
             return $this->response(false, "El formato del correo electrónico no es válido");
         }
 
-        // Encriptación nativa recomendada antes de impactar el modelo
         $passwordHash = password_hash($pass, PASSWORD_BCRYPT);
 
         $request = $this->model->cambiarContraseña($username, $email, $passwordHash);
@@ -106,6 +113,6 @@ class userController extends Controllers
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'] ?? "Contraseña modificada correctamente", $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Contraseña actualizada exitosamente", $request['data'] ?? null);
     }
 }
