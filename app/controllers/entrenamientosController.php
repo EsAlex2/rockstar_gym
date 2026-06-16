@@ -31,10 +31,6 @@ class EntrenamientosController extends Controllers
         return $this->response(true, "Entrenamientos obtenidos exitosamente", $data);
     }
 
-    /**
-     * Obtiene los detalles de un entrenamiento específico a través de su ID.
-     * @param int $id
-     */
     public function listarEntrenamientoPorNombre(string $nombre)
     {
         $nombreEntrenamiento = trim($nombre);
@@ -112,6 +108,6 @@ class EntrenamientosController extends Controllers
     }
 }
 
-$pruebas = new EntrenamientosController($pdo);
+// $pruebas = new EntrenamientosController($pdo);
 
-echo $pruebas->listarEntrenamientoPorNombre("2do entrenamiento");
+// echo $pruebas->listarEntrenamientoPorNombre("2do entrenamiento");

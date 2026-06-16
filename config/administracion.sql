@@ -90,15 +90,14 @@ CREATE TABLE administracion.personas (
 -- USUARIOS (Logueo al sistema)
 CREATE TABLE administracion.usuarios (
     id SERIAL PRIMARY KEY,
-    id_estatus INTEGER REFERENCES administracion.estatus(id) ON DELETE RESTRICT,
-    id_persona INTEGER REFERENCES administracion.personas(id) ON DELETE CASCADE,
+    id_estatus INTEGER DEFAULT 1 REFERENCES administracion.estatus(id) ON DELETE RESTRICT,
+    id_persona INTEGER UNIQUE REFERENCES administracion.personas(id) ON DELETE CASCADE,
     id_rol INTEGER REFERENCES administracion.roles(id) ON DELETE RESTRICT,
-    username VARCHAR(40) UNIQUE NOT NULL,
     email_user VARCHAR(80) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP
-);
+);  
 
 -- ENTRENADORES
 CREATE TABLE administracion.entrenadores (

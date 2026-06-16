@@ -1,64 +1,81 @@
 <?php
-require_once __DIR__ . '/../models/loginModel.php';
 
-class loginController {
+require_once __DIR__ . '/../controllers/controllers.php';
+
+/* * loginController.php
+ * Controlador encargado de procesar las intenciones de inicio y cierre de sesión.
+ * Autor: Alex Madrid (Refactorizado)
+ * Fecha: 16/06/2026
+ */
+
+class LoginController extends Controllers
+{
     private $model;
 
-    public function __construct() {
-        $this->model = new LoginModel();
+    public function __construct($pdo)
+    {
+        parent::__construct($pdo);
+        $this->model = $this->cargarModels('LoginModel');
     }
 
-    public function login() {
-        // Asegurar que la sesión esté iniciada para guardar errores o datos de sesión
+    /**
+     * Procesa la solicitud POST del formulario de login
+     */
+    public function login()
+    {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Sanitización básica de entradas
+            // Sanitización de la identidad de ingreso
             $identity = filter_input(INPUT_POST, 'identity', FILTER_SANITIZE_SPECIAL_CHARS);
             $password = $_POST['password'] ?? '';
 
-
             if (empty($identity) || empty($password)) {
-                $_SESSION['login_error'] = "Por favor, llene todos los campos.";
+                $_SESSION['login_error'] = "Por favor, llene todos los campos requeridos.";
                 header("Location: " . URL_BASE . "/public/index.php");
                 exit;
             }
 
-            // Buscar usuario en la base de datos
+            // Consulta al modelo optimizado
             $usuario = $this->model->buscarPorIdentidad($identity);
 
             if ($usuario && password_verify($password, $usuario['password_hash'])) {
-                // Autenticación exitosa: Guardamos datos útiles en la sesión
-                $_SESSION['user_id'] = $usuario['id'];
-                $_SESSION['username'] = $usuario['username'];
-                $_SESSION['user_email'] = $usuario['email_user'];
-                $_SESSION['user_fullname'] = $usuario['primer_nombre'] . ' ' . $usuario['primer_apellido'];
-                $_SESSION['user_role'] = $usuario['nombre_rol'];
                 
-                // Redirigir al Dashboard principal
+                // MEDIDA DE SEGURIDAD: Previene la fijación de sesiones maliciosas
+                session_regenerate_id(true);
+
+                // Mapeo seguro de variables de entorno de sesión
+                $_SESSION['user_id']        = $usuario['id'] ?? null;
+                $_SESSION['user_email']      = $usuario['email_user'];
+                $_SESSION['user_fullname']   = $usuario['primer_nombre'] . ' ' . $usuario['primer_apellido'];
+                $_SESSION['user_role']       = $usuario['nombre_rol'];
+                
                 header("Location: " . URL_BASE . "/views/home.php");
                 exit;
             } else {
-                // Error de credenciales
                 $_SESSION['login_error'] = "Usuario, correo o contraseña incorrectos.";
                 header("Location: " . URL_BASE . "/public/index.php");
                 exit;
             }
         } else {
-            // Si intentan entrar por GET de forma inválida
             header("Location: " . URL_BASE . "/public/index.php");
             exit;
         }
     }
 
-    public function logout() {
+    /**
+     * Destruye de forma segura los vectores de sesión activos
+     */
+    public function logout()
+    {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         session_unset();
         session_destroy();
+        
         header("Location: " . URL_BASE . "/public/index.php");
         exit;
     }

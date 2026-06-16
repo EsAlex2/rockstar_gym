@@ -11,6 +11,7 @@ require_once __DIR__ . '/../models/horarioEntrenamientoModel.php';
 require_once __DIR__ . '/../models/horariosModel.php';
 require_once __DIR__ . '/../models/pagosModel.php';
 require_once __DIR__ . '/../models/planesModel.php';
+require_once __DIR__ . '/../models/loginModel.php';
 
 
 class Controllers

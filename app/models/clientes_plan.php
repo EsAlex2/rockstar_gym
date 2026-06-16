@@ -50,7 +50,7 @@ class clientesPlanesModel extends Model
             $duracion = $plan['duracion_dias'];
             $fechaVencimiento = date('Y-m-d', strtotime($fechaInicioFormateada . " + $duracion days"));
 
-            $estatus_default = 1; 
+            $estatus_default = 1;
 
             // Inserción
             $query = $this->pdo->prepare("INSERT INTO administracion.clientes_planes 
@@ -62,7 +62,7 @@ class clientesPlanesModel extends Model
             $query->bindParam(':id_e', $estatus_default, PDO::PARAM_INT);
             $query->bindParam(':f_inicio', $fechaInicioFormateada, PDO::PARAM_STR);
             $query->bindParam(':f_vencimiento', $fechaVencimiento, PDO::PARAM_STR);
-            
+
             $query->execute();
 
             return [
@@ -88,26 +88,25 @@ class clientesPlanesModel extends Model
             }
 
             $sql = $this->pdo->prepare("SELECT 
-                    cp.id,
-                    cp.id_cliente,
-                    cp.id_plan,
-                    p.nombre_plan AS plan,
-                    p.precio,
-                    cp.id_estatus,
-                    e.nombre_estatus AS estatus,
-                    cp.fecha_inicio,
-                    cp.fecha_vencimiento,
-                    cp.creado_en,
-                    cp.actualizado_en
-                FROM administracion.clientes_planes cp
-                INNER JOIN administracion.planes p ON cp.id_plan = p.id
-                INNER JOIN administracion.estatus e ON cp.id_estatus = e.id
-                ORDER BY cp.creado_en DESC");
+                cp.id,
+                cp.id_cliente,
+                cp.id_plan,
+                p.nombre_plan AS plan,
+                p.precio,
+                cp.id_estatus,
+                e.nombre_estatus AS estatus,
+                cp.fecha_inicio,
+                cp.fecha_vencimiento,
+                cp.creado_en,
+                cp.actualizado_en
+            FROM administracion.clientes_planes cp
+            INNER JOIN administracion.planes p ON cp.id_plan = p.id
+            INNER JOIN administracion.estatus e ON cp.id_estatus = e.id
+            ORDER BY cp.creado_en DESC");
 
             $sql->execute();
-            $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
+            return $sql->fetchAll(PDO::FETCH_ASSOC); // Si está vacío, devuelve [] en lugar de una clave ['error']
 
-            return empty($resultado) ? ["error" => "No hay membresías registradas actualmente"] : $resultado;
         } catch (PDOException $e) {
             return ["error" => "Error al obtener el listado de membresías: " . $e->getMessage()];
         }
