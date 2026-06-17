@@ -82,3 +82,9 @@ class EntrenadoresController extends Controllers
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
 }
+
+// $pruebas = new EntrenadoresController($pdo);
+
+// $datos = ["id_persona" => 1, "especialidad" => "especialidad1"];
+
+// echo $pruebas->crearEntrenadores($datos);

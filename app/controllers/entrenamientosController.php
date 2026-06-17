@@ -110,4 +110,8 @@ class EntrenamientosController extends Controllers
 
 // $pruebas = new EntrenamientosController($pdo);
 
+// $datos = ["id_entrenador" => 1, "id_sede" => 2, "nombre_entrenamiento" => "Entrenamiento 1", "descripcion" => "Entrenamiento de Prueba"];
+
+// echo $pruebas->crearEntrenamientos($datos);
+
 // echo $pruebas->listarEntrenamientoPorNombre("2do entrenamiento");
