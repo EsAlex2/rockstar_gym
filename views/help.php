@@ -6,7 +6,6 @@ require_once __DIR__ . '/../app/controllers/personasController.php';
 require_once __DIR__ . '/../app/controllers/clientesController.php';
 require_once __DIR__ . '/../app/controllers/entrenadoresController.php';
 require_once __DIR__ . '/../app/controllers/entrenamientosController.php';
-require_once __DIR__ . '/../app/controllers/clientesPlanController.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -28,7 +27,6 @@ $personasCtrl = new PersonasController($db);
 $clientesCtrl = new ClientesController($db);
 $entrenadoresCtrl = new EntrenadoresController($db);
 $entrenamientosCtrl = new EntrenamientosController($db);
-$clientesPlanCtrl = new ClientesPlanController($db);
 
 // =========================================================================
 // 2. CARGA DE DATOS PARA LAS VISTAS (TABLAS Y SELECTS)
@@ -140,15 +138,6 @@ if (is_string($respuestaClientes)) {
 if (is_array($respuestaClientes)) {
     // Si viene envuelto en el helper response structure ['data']
     $listaClientes = $respuestaClientes['data'] ?? $respuestaClientes;
-}
-/** MEMBRESIAS */
-$respuestaMembresias = $clientesPlanCtrl->listarClientesPlanes();
-$listaMembresias = [];
-if (is_string($respuestaMembresias)) {
-    $respuestaMembresias = json_decode($respuestaMembresias, true);
-}
-if (is_array($respuestaMembresias) && isset($respuestaMembresias['status']) && $respuestaMembresias['status'] === true) {
-    $listaMembresias = $respuestaMembresias['data'] ?? [];
 }
 
 // Carga de planes generales de gimnasio para el Selector del Modal
@@ -358,25 +347,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'actualizar_entrenamiento' && 
     ];
 
     $respuesta = $entrenamientosCtrl->actualizarEntrenamientos($datos);
-
-    if (is_string($respuesta)) {
-        $respuesta = json_decode($respuesta, true);
-    }
-
-    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-if (isset($_GET['action']) && $_GET['action'] === 'asignar_membresia' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json; charset=utf-8');
-
-    $datos = [
-        'id_cliente' => $_POST['id_cliente'] ?? '',
-        'id_plan' => $_POST['id_plan'] ?? '',
-        'fecha_inicio' => $_POST['fecha_inicio'] ?? ''
-    ];
-
-    $respuesta = $clientesPlanCtrl->asignarClientePlan($datos);
 
     if (is_string($respuesta)) {
         $respuesta = json_decode($respuesta, true);

@@ -29,7 +29,7 @@ require_once __DIR__ . '/help.php';
                         xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    Asignar Plan a Cliente
+                    Asignar Plan a Cliente  
                 </button>
             </div>
         </header>
