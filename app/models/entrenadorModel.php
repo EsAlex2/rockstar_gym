@@ -5,10 +5,7 @@ require_once __DIR__ . '/../core/conn.php';
 /* =================================================================================
  * entrenadorModel.php
  * Modelo para la gestión de entrenadores del gimnasio en el sistema de administración.
- * Proporciona métodos para obtener, crear y actualizar entrenadores.
- * Utiliza PDO para la interacción con la base de datos y maneja errores de conexión y ejecución.
  * Autor: Alex Madrid
- * Fecha: 07/06/2026
  * ==============================================================================
  */
 
@@ -22,103 +19,73 @@ class entrenadorModel extends Model
         $this->pdo = $pdo;
     }
 
-    public function crearEntrenadores(int $id_persona, string $especialidad)
+    public function listarEntrenadores()
 {
     try {
         if (!$this->pdo) {
             return ["error" => "Error de conexión a la base de datos"];
-        }
-        
-        $checkPerson = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE id = :id_persona");
-        $checkPerson->bindParam(':id_persona', $id_persona, PDO::PARAM_INT);
-        $checkPerson->execute();
+        }   
 
-        if ($checkPerson->fetchColumn() == 0) {
-            return ["error" => "La persona no existe en nuestra base de datos"];
-        }
+        $stmt = $this->pdo->prepare("SELECT * FROM entrenadores");
+        $stmt->execute(); // <-- Te faltaba ejecutar la consulta
 
-        $mayus = strtoupper($especialidad);
+        // Retornamos todos los registros encontrados
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.entrenadores WHERE id_persona = :id_persona AND especialidad = :especialidad");
-        $checkDuplicate->bindParam(':id_persona', $id_persona, PDO::PARAM_INT);
-        $checkDuplicate->bindParam(':especialidad', $especialidad, PDO::PARAM_STR);
-        $checkDuplicate->execute();
-
-        if ($checkDuplicate->fetchColumn() > 0) {
-            return ["error" => "Esta persona ya se encuentra registrada con la especialidad: " . $especialidad];
-        }
-
-        $query = $this->pdo->prepare("INSERT INTO administracion.entrenadores (id_estatus, id_persona, especialidad) VALUES (:id_estatus, :id_persona, :especialidad)");
-        $estatus_default = 1;
-
-        $query->bindParam(':id_estatus', $estatus_default, PDO::PARAM_INT);
-        $query->bindParam(':id_persona', $id_persona, PDO::PARAM_INT);
-        $query->bindParam(':especialidad', $mayus, PDO::PARAM_STR);
-
-        $query->execute();
-
-        return [
-            "success" => true,
-            "message" => "Especialidad asignada al entrenador exitosamente",
-            "data" => [
-                "id_persona" => $id_persona,
-                "especialidad" => $mayus
-            ]
-        ];
     } catch (PDOException $e) {
-        return ["error" => "Error al crear entrenador: " . $e->getMessage()];
+        return ["error" => "Error al listar entrenadores: " . $e->getMessage()];
     }
 }
 
-    public function listarEntrenadores()
+
+    public function crearEntrenadores(int $id_persona, string $especialidad)
     {
         try {
             if (!$this->pdo) {
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $sql = $this->pdo->prepare("SELECT e.nombre_estatus As estatus, p.primer_nombre || ' ' || p.primer_apellido AS persona, especialidad 
-            FROM administracion.entrenadores a
-            INNER JOIN administracion.estatus e ON a.id_estatus = e.id
-            INNER JOIN administracion.personas p ON a.id_persona = p.id");
-            $sql->execute();
-            $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
+            $checkPerson = $this->pdo->prepare("SELECT COUNT(*) FROM personas WHERE id = :id_persona");
+            $checkPerson->bindParam(':id_persona', $id_persona, PDO::PARAM_INT);
+            $checkPerson->execute();
 
-            return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
-        } catch (PDOException $e) {
-            return ["error" => "Error al obtener usuarios: " . $e->getMessage()];
-        }
-    }
-
-    public function listarPorCedula(string $cedula_identidad)
-    {
-        try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            /*
-             * validaciones para la busqueda de cada entrenador por cedula
-             * 1era validacion: que exista la persona para asociarlo a la tabla de entrenadores
-             */
-
-            $checkTraining = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE  cedula_identidad = :cedula");
-            $checkTraining->bindParam(':cedula', $cedula_identidad, PDO::PARAM_INT);
-            $checkTraining->execute();
-
-            if ($checkTraining->fetchColumn() == 0) {
+            if ($checkPerson->fetchColumn() == 0) {
                 return ["error" => "La persona no existe en nuestra base de datos"];
             }
 
-            /**
-             * realizamos un INNER JOIN para trer de la tabla de personas la informacion basica del entrenador, ademas su informacion en la 
-             * tabla de entrenadores
-             */
+            $especialidadFormateada = ucwords(strtolower(trim($especialidad)));
 
-            $buscarInfo = $this->pdo->prepare("SELECT a.id, b.nombre_estatus AS Estatus, c.cedula_identidad AS Documento_Identidad, c.primer_nombre AS Nombre, c.primer_apellido AS Apellido, a.especialidad
-            FROM administracion.entrenadores a
-            INNER JOIN administracion.estatus b ON a.id_estatus = b.id
-            INNER JOIN administracion.personas c ON a.id_persona = c.id
+            $stmt = $this->pdo->prepare("INSERT INTO entrenadores (id_persona, id_estatus, especialidad) VALUES (:id_persona, 1, :especialidad)");
+            $stmt->bindParam(':id_persona', $id_persona, PDO::PARAM_INT);
+            $stmt->bindParam(':especialidad', $especialidadFormateada, PDO::PARAM_STR);
+            $stmt->execute();
+
+            return [
+                "success" => true,
+                "message" => "Entrenador registrado exitosamente."
+            ];
+        } catch (PDOException $e) {
+            return ["error" => "Error al crear el entrenador: " . $e->getMessage()];
+        }
+    }
+
+    public function buscarEntrenadorPorCedula(string $cedula_identidad)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $buscarInfo = $this->pdo->prepare("SELECT 
+                a.id, 
+                b.nombre_estatus AS Estatus, 
+                c.cedula_identidad AS Documento_Identidad, 
+                c.primer_nombre AS Nombre, 
+                c.primer_apellido AS Apellido, 
+                a.especialidad
+            FROM entrenadores a
+            INNER JOIN estatus b ON a.id_estatus = b.id
+            INNER JOIN personas c ON a.id_persona = c.id
             WHERE c.cedula_identidad = :cedula");
 
             $buscarInfo->bindParam(':cedula', $cedula_identidad, PDO::PARAM_STR);
@@ -133,13 +100,11 @@ class entrenadorModel extends Model
             return [
                 "estatus" => true,
                 "message" => "Entrenador Encontrado Exitosamente!",
-                "data" => [
-                    $resultado
-                ]
+                "data" => [$resultado]
             ];
 
         } catch (PDOException $e) {
-            return ["error" => "Error al buscar la persona " . $e->getMessage()];
+            return ["error" => "Error al buscar entrenador: " . $e->getMessage()];
         }
     }
 }

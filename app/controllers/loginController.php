@@ -51,6 +51,8 @@ class LoginController extends Controllers
                 $_SESSION['user_email']      = $usuario['email_user'];
                 $_SESSION['user_fullname']   = $usuario['primer_nombre'] . ' ' . $usuario['primer_apellido'];
                 $_SESSION['user_role']       = $usuario['nombre_rol'];
+                // GUARDAR PERMISOS EN SESIÓN
+                $_SESSION['user_permissions'] = $this->model->obtenerPermisosPorRol($usuario['id_rol']);
                 
                 header("Location: " . URL_BASE . "/views/home.php");
                 exit;

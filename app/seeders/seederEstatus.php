@@ -44,7 +44,7 @@ class SeederEstatus extends Seeder
         ];
 
         foreach ($estatusList as $estatus) {
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.estatus (nombre_estatus, descripcion) VALUES (:nombre_estatus, :descripcion)");
+            $stmt = $this->pdo->prepare("INSERT INTO estatus (nombre_estatus, descripcion) VALUES (:nombre_estatus, :descripcion)");
             $stmt->execute([
                 ':nombre_estatus' => $estatus['nombre_estatus'],
                 ':descripcion' => $estatus['descripcion']

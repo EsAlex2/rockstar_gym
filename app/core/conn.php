@@ -2,7 +2,7 @@
 
     require_once __DIR__ . '/../../config/init.php';
     
-    $dsn = 'pgsql:host=' . BD_HOST . ';port=' . BD_PORT . ';dbname=' . BD_NAME . ';options=\'--client_encoding=UTF8\'';
+    $dsn = 'mysql:host=' . BD_HOST . ';port=' . BD_PORT . ';dbname=' . BD_NAME . ';options=\'--client_encoding=UTF8\'';
 
     try {
         $pdo = new PDO($dsn, BD_USER, BD_PASS);

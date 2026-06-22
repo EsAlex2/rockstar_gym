@@ -8,7 +8,6 @@ require_once __DIR__ . '/../core/conn.php';
  * Por motivos de seguridad contable, este modelo NO permite actualizaciones de montos 
  * ni eliminaciones de registros. Solo inserción, consulta y cambio de estatus.
  * Autor: Alex Madrid
- * Fecha: 12/06/2026
  * ==============================================================================
  */
 
@@ -43,7 +42,8 @@ class pagosModel extends Model
 
             $refLimpia = strtoupper(trim($cod_referencia));
 
-            $checkRef = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.pagos WHERE cod_referencia = :ref");
+            // Removido el prefijo 'administracion.'
+            $checkRef = $this->pdo->prepare("SELECT COUNT(*) FROM pagos WHERE cod_referencia = :ref");
             $checkRef->bindParam(':ref', $refLimpia, PDO::PARAM_STR);
             $checkRef->execute();
 
@@ -51,7 +51,8 @@ class pagosModel extends Model
                 return ["error" => "El código de referencia bancaria '" . $cod_referencia . "' ya fue registrado previamente."];
             }
 
-            $query = $this->pdo->prepare("INSERT INTO administracion.pagos 
+            // Removido el prefijo 'administracion.'
+            $query = $this->pdo->prepare("INSERT INTO pagos 
                 (id_banco, id_cliente, id_cliente_plan, id_user, id_estatus, monto, fecha_pago, cod_referencia) 
                 VALUES (:id_banco, :id_cliente, :id_cliente_plan, :id_user, :id_estatus, :monto, :fecha_pago, :ref)");
 
@@ -61,7 +62,7 @@ class pagosModel extends Model
             $query->bindParam(':id_user', $id_user, PDO::PARAM_INT);
             $query->bindParam(':id_estatus', $id_estatus, PDO::PARAM_INT);
             $query->bindParam(':monto', $monto);
-            $query->bindParam(':fecha_pago', $fecha_pago, PDO::PARAM_STR); // Formato esperado: 'YYYY-MM-DD'
+            $query->bindParam(':fecha_pago', $fecha_pago, PDO::PARAM_STR); 
             $query->bindParam(':ref', $refLimpia, PDO::PARAM_STR);
 
             $query->execute();
@@ -70,7 +71,7 @@ class pagosModel extends Model
                 "success" => true,
                 "message" => "Pago registrado exitosamente de forma segura",
                 "data" => [
-                    "id_pago" => $this->pdo->lastInsertId(),
+                    "id_pago" => $this->pdo->lastInsertId(), // Totalmente compatible con AUTO_INCREMENT de MySQL
                     "monto" => $monto,
                     "cod_referencia" => $refLimpia
                 ]
@@ -87,6 +88,7 @@ class pagosModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
+            // Removidos los prefijos 'administracion.' en todas las tablas del JOIN
             $sql = $this->pdo->prepare("SELECT 
                     p.id,
                     b.nombre_banco AS banco,
@@ -96,9 +98,9 @@ class pagosModel extends Model
                     p.fecha_pago,
                     p.cod_referencia,
                     p.creado_en
-                FROM administracion.pagos p
-                INNER JOIN administracion.bancos b ON p.id_banco = b.id
-                INNER JOIN administracion.estatus e ON p.id_estatus = e.id
+                FROM pagos p
+                INNER JOIN bancos b ON p.id_banco = b.id
+                INNER JOIN estatus e ON p.id_estatus = e.id
                 ORDER BY p.creado_en DESC");
 
             $sql->execute();
@@ -117,12 +119,13 @@ class pagosModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
+            // Removidos los prefijos 'administracion.'
             $query = $this->pdo->prepare("SELECT 
                     p.id, p.id_banco, b.nombre_banco, p.id_cliente, p.id_cliente_plan, 
                     p.id_user, p.id_estatus, e.nombre_estatus, p.monto, p.fecha_pago, p.cod_referencia, p.creado_en
-                FROM administracion.pagos p
-                INNER JOIN administracion.bancos b ON p.id_banco = b.id
-                INNER JOIN administracion.estatus e ON p.id_estatus = e.id
+                FROM pagos p
+                INNER JOIN bancos b ON p.id_banco = b.id
+                INNER JOIN estatus e ON p.id_estatus = e.id
                 WHERE p.id = :id");
             
             $query->bindParam(':id', $id_pago, PDO::PARAM_INT);
@@ -150,7 +153,8 @@ class pagosModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $checkPago = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.pagos WHERE id = :id");
+            // Removidos los prefijos 'administracion.'
+            $checkPago = $this->pdo->prepare("SELECT COUNT(*) FROM pagos WHERE id = :id");
             $checkPago->bindParam(':id', $id_pago, PDO::PARAM_INT);
             $checkPago->execute();
 
@@ -158,7 +162,7 @@ class pagosModel extends Model
                 return ["error" => "El pago que intenta modificar no existe"];
             }
 
-            $checkEstatus = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.estatus WHERE id = :id_e");
+            $checkEstatus = $this->pdo->prepare("SELECT COUNT(*) FROM estatus WHERE id = :id_e");
             $checkEstatus->bindParam(':id_e', $nuevo_id_estatus, PDO::PARAM_INT);
             $checkEstatus->execute();
 
@@ -166,7 +170,7 @@ class pagosModel extends Model
                 return ["error" => "El estatus seleccionado no es válido"];
             }
 
-            $query = $this->pdo->prepare("UPDATE administracion.pagos SET id_estatus = :id_e WHERE id = :id");
+            $query = $this->pdo->prepare("UPDATE pagos SET id_estatus = :id_e WHERE id = :id");
             $query->bindParam(':id', $id_pago, PDO::PARAM_INT);
             $query->bindParam(':id_e', $nuevo_id_estatus, PDO::PARAM_INT);
             $query->execute();

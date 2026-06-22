@@ -4,12 +4,9 @@ require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/../core/conn.php';
 
 /* =================================================================================
- *  permisosModel.php
- *  Modelo para la gestión de permisos en el sistema de administración.
- *  Proporciona métodos para obtener, crear y actualizar permisos.
- *  Utiliza PDO para la interacción con la base de datos y maneja errores de conexión y ejecución.
- *  Autor: Alex Madrid
- *  Fecha: 03/06/2026
+ * permisosModel.php
+ * Modelo para la gestión de permisos en el sistema de administración.
+ * Autor: Alex Madrid
  * ==============================================================================
  */
 
@@ -35,10 +32,12 @@ class permisosModel extends Model
                 return ["error" => "Error de conexion a la base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM administracion.permisos");
+            // Removido el prefijo 'administracion.'
+            $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM permisos");
             $stmt->execute();
+            $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            return empty($stmt) ? ["error" => "No hay usuarios registrados"] : $stmt;
+            return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
         } catch (PDOException $e) {
             return ["error" => "Error inesperado para obtener los permisos registrados" . $e->getMessage()];
         }
@@ -51,7 +50,8 @@ class permisosModel extends Model
                 return ["error" => "Error de conexion a la base de datos"];
             }
 
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.permisos WHERE nombre_permiso = :nombre_permiso");
+            // Removido el prefijo 'administracion.'
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE nombre_permiso = :nombre_permiso");
             $checkStmt->bindParam(':nombre_permiso', $nombre_permiso);
             $checkStmt->execute();
 
@@ -59,7 +59,7 @@ class permisosModel extends Model
                 return ["error" => "No se encontro registro de ese permiso en nuestra base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM administracion.permisos WHERE nombre_permiso = :nombre_permiso");
+            $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM permisos WHERE nombre_permiso = :nombre_permiso");
             $stmt->bindParam(':nombre_permiso', $nombre_permiso);
             $stmt->execute();
             return [
@@ -83,7 +83,8 @@ class permisosModel extends Model
                 return ["error" => "Error de conexion a la base de datos"];
             }
 
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.permisos WHERE nombre_permiso = :nombre_permiso");
+            // Removido el prefijo 'administracion.'
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE nombre_permiso = :nombre_permiso");
             $checkStmt->bindParam(':nombre_permiso', $permiso);
             $checkStmt->execute();
 
@@ -91,7 +92,7 @@ class permisosModel extends Model
                 return ["error" => "El permiso: $permiso ya existe en la base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.permisos (nombre_permiso, descripcion) VALUES (:nombre_permiso, :descripcion)");
+            $stmt = $this->pdo->prepare("INSERT INTO permisos (nombre_permiso, descripcion) VALUES (:nombre_permiso, :descripcion)");
             $stmt->bindParam(':nombre_permiso', $permiso);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->execute();

@@ -6,6 +6,9 @@ require_once __DIR__ . '/../app/controllers/personasController.php';
 require_once __DIR__ . '/../app/controllers/clientesController.php';
 require_once __DIR__ . '/../app/controllers/entrenadoresController.php';
 require_once __DIR__ . '/../app/controllers/entrenamientosController.php';
+require_once __DIR__ . '/../app/controllers/permisosController.php';
+require_once __DIR__ . '/../app/controllers/pagosController.php';
+
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -15,9 +18,7 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: " . URL_BASE . "/public/index.php");
     exit;
 }
-
 $db = $pdo ?? null;
-
 // =========================================================================
 // 1. INICIALIZACIÓN DE CONTROLADORES
 // =========================================================================
@@ -27,10 +28,63 @@ $personasCtrl = new PersonasController($db);
 $clientesCtrl = new ClientesController($db);
 $entrenadoresCtrl = new EntrenadoresController($db);
 $entrenamientosCtrl = new EntrenamientosController($db);
+$permisosCtrl = new permisosController($db);
+$pagosCtrl = new pagosController($db);
 
 // =========================================================================
 // 2. CARGA DE DATOS PARA LAS VISTAS (TABLAS Y SELECTS)
 // =========================================================================
+
+/** --- CARGA DINÁMICA DE PERMISOS PARA LA TABLA --- */
+$respuestaPermisos = $permisosCtrl->listarPermisos();
+$listaPermisos = [];
+
+if (is_string($respuestaPermisos)) {
+    $respuestaPermisos = json_decode($respuestaPermisos, true);
+}
+
+if (is_array($respuestaPermisos)) {
+    // Los registros del controlador vienen dentro del índice 'data' gracias al método helper response()
+    $listaPermisos = $respuestaPermisos['data'] ?? [];
+}
+
+// --- CARGA DINÁMICA DE PAGOS PARA LA TABLA ---
+$respuestaPagos = $pagosCtrl->listarPagos();
+$listaPagos = []; // Inicializamos estrictamente vacío por defecto
+
+if (is_string($respuestaPagos)) {
+    $respuestaPagos = json_decode($respuestaPagos, true);
+}
+
+if (is_array($respuestaPagos)) {
+    // Validamos si la respuesta del controlador fue exitosa mediante 'status' o 'success'
+    $exitoPagos = $respuestaPagos['status'] ?? $respuestaPagos['success'] ?? false;
+
+    if ($exitoPagos && isset($respuestaPagos['data'])) {
+        $listaPagos = $respuestaPagos['data'];
+    } else {
+        // Si el controlador reportó un error o no tiene la clave 'data', aseguramos un array vacío
+        $listaPagos = isset($respuestaPagos['data']) && is_array($respuestaPagos['data']) ? $respuestaPagos['data'] : [];
+    }
+}
+
+// --- CARGA DINÁMICA DE BANCOS ---
+$listaBancos = [];
+try {
+    if ($db) {
+        $stmtBancos = $db->query("SELECT id, nombre_banco FROM bancos ORDER BY nombre_banco ASC");
+        $listaBancos = $stmtBancos->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (PDOException $e) { $listaBancos = []; }
+
+// --- CARGA DINÁMICA DE ESTATUS ---
+$listaEstatus = [];
+try {
+    if ($db) {
+        $stmtEstatus = $db->query("SELECT id, nombre_estatus FROM estatus ORDER BY nombre_estatus ASC");
+        $listaEstatus = $stmtEstatus->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (PDOException $e) { $listaEstatus = []; }
 
 /** --- CARGA DINÁMICA DE USUARIOS PARA LA TABLA --- */
 $respuestaUsuarios = $userCtrl->listarUsuarios();
@@ -46,9 +100,8 @@ if (is_array($respuestaUsuarios)) {
     $listaUsuarios = $respuestaUsuarios['data'] ?? [];
 }
 
-
 /** --- CARGA DINAMICA DE ENTRENADORES */
-$respuestaEntrenadores = $entrenadoresCtrl->listarEntrenadores();
+$respuestaEntrenadores = $entrenadoresCtrl->obtenerEntrenadores();
 $listaEntrenadores = [];
 
 if (is_string($respuestaEntrenadores)) {
@@ -58,7 +111,7 @@ if (is_array($respuestaEntrenadores)) {
     $listaEntrenadores = $respuestaEntrenadores['data'] ?? [];
 }
 
-/** --- [NUEVO] CARGA DE COMPONENTES DEL MÓDULO DE ENTRENAMIENTOS --- */
+/** --- CARGA DE COMPONENTES DEL MÓDULO DE ENTRENAMIENTOS --- */
 
 // A. Obtener listado general de entrenamientos planeados
 $respuestaEntrenamientos = $entrenamientosCtrl->listarEntrenamientos();
@@ -71,7 +124,7 @@ if (is_array($respuestaEntrenamientos)) {
 }
 
 // B. Obtener entrenadores disponibles para el selector modal
-$respuestaEntrenadores = $entrenadoresCtrl->listarEntrenadores();
+$respuestaEntrenadores = $entrenadoresCtrl->obtenerEntrenadores();
 $listaEntrenadores = [];
 if (is_string($respuestaEntrenadores)) {
     $respuestaEntrenadores = json_decode($respuestaEntrenadores, true);
@@ -84,7 +137,7 @@ if (is_array($respuestaEntrenadores)) {
 $listaSedes = [];
 try {
     if ($db) {
-        $stmtSedes = $db->query("SELECT id, sede FROM administracion.sedes ORDER BY sede ASC");
+        $stmtSedes = $db->query("SELECT id, sede FROM sedes ORDER BY sede ASC");
         $listaSedes = $stmtSedes->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
@@ -129,28 +182,34 @@ if (is_array($respuestaPersonas)) {
 
 /** --- CARGA DE CLIENTES --- */
 $respuestaClientes = $clientesCtrl->listarClientes();
-$listaClientes = [];
+$listaClientes = []; // Inicializamos vacío por defecto
 
 if (is_string($respuestaClientes)) {
     $respuestaClientes = json_decode($respuestaClientes, true);
 }
 
 if (is_array($respuestaClientes)) {
-    // Si viene envuelto en el helper response structure ['data']
-    $listaClientes = $respuestaClientes['data'] ?? $respuestaClientes;
+    // Verificamos si la respuesta del controlador fue exitosa (status o success en true)
+    $estadoExito = $respuestaClientes['status'] ?? $respuestaClientes['success'] ?? false;
+    
+    if ($estadoExito && isset($respuestaClientes['data'])) {
+        $listaClientes = $respuestaClientes['data'];
+    } else {
+        // Si el controlador devolvió un error o el formato es una lista directa
+        $listaClientes = isset($respuestaClientes['data']) ? $respuestaClientes['data'] : [];
+    }
 }
 
 // Carga de planes generales de gimnasio para el Selector del Modal
 $listaPlanesDisponibles = [];
 try {
     if ($db) {
-        $stmtPlanes = $db->query("SELECT id, nombre_plan, precio, duracion_dias FROM administracion.planes ORDER BY nombre_plan ASC");
+        $stmtPlanes = $db->query("SELECT id, nombre_plan, precio, duracion_dias FROM planes ORDER BY nombre_plan ASC");
         $listaPlanesDisponibles = $stmtPlanes->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
     $listaPlanesDisponibles = [];
 }
-
 
 // =========================================================================
 // 3. ENRUTADOR DE PASARELA API (RUTAS ASÍNCRONAS AJAX/FETCH)
@@ -176,7 +235,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'buscar_persona' && $_SERVER['
     } else {
         // 2. Solución de respaldo directa usando PDO si los nombres de métodos varían
         try {
-            $stmt = $db->prepare("SELECT id, primer_nombre, primer_apellido FROM administracion.personas WHERE cedula_identidad = :cedula LIMIT 1");
+            $stmt = $db->prepare("SELECT id, primer_nombre, primer_apellido FROM personas WHERE cedula_identidad = :cedula LIMIT 1");
             $stmt->bindParam(':cedula', $cedula, PDO::PARAM_STR);
             $stmt->execute();
             $persona = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -347,6 +406,117 @@ if (isset($_GET['action']) && $_GET['action'] === 'actualizar_entrenamiento' && 
     ];
 
     $respuesta = $entrenamientosCtrl->actualizarEntrenamientos($datos);
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+
+/**---- NUEVA RUTA POST: CREACIÓN DE ROLES ------ */
+if (isset($_GET['action']) && $_GET['action'] === 'crear_rol' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $nombre_rol  = $_POST['nombre_rol'] ?? '';
+    $descripcion = $_POST['descripcion'] ?? '';
+
+    // Ejecutamos el controlador directamente pasándole los parámetros limpios
+    $respuesta = $rolesCtrl->crearNuevoRol($nombre_rol, $descripcion);
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**---- NUEVA RUTA POST: ACTUALIZACIÓN DE ROLES ------ */
+if (isset($_GET['action']) && $_GET['action'] === 'actualizar_rol' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_rol      = isset($_POST['id_rol']) ? (int) $_POST['id_rol'] : 0;
+    $nombre_rol  = $_POST['nombre_rol'] ?? '';
+    $descripcion = $_POST['descripcion'] ?? '';
+
+    // Invocamos la actualización mapeada de tu rolesController
+    $respuesta = $rolesCtrl->actualizarDatosRol($id_rol, $nombre_rol, $descripcion);
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**---- NUEVA RUTA POST: REGISTRAR PAGO ------ */
+if (isset($_GET['action']) && $_GET['action'] === 'registrar_pago' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_banco        = isset($_POST['id_banco']) ? (int)$_POST['id_banco'] : 0;
+    $id_cliente      = isset($_POST['id_cliente']) ? (int)$_POST['id_cliente'] : 0;
+    $id_cliente_plan = isset($_POST['id_cliente_plan']) ? (int)$_POST['id_cliente_plan'] : 0;
+    $id_user         = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0; // Se obtiene seguro desde la sesión activa
+    $id_estatus      = isset($_POST['id_estatus']) ? (int)$_POST['id_estatus'] : 0;
+    $monto           = isset($_POST['monto']) ? (float)$_POST['monto'] : 0.0;
+    $fecha_pago      = $_POST['fecha_pago'] ?? '';
+    $cod_referencia  = $_POST['cod_referencia'] ?? '';
+
+    $respuesta = $pagosCtrl->registrarPago(
+        $id_banco,
+        $id_cliente,
+        $id_cliente_plan,
+        $id_user,
+        $id_estatus,
+        $monto,
+        $fecha_pago,
+        $cod_referencia
+    );
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**---- NUEVA RUTA POST: CAMBIAR ESTATUS PAGO ------ */
+if (isset($_GET['action']) && $_GET['action'] === 'cambiar_estatus_pago' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_pago          = isset($_POST['id_pago']) ? (int)$_POST['id_pago'] : 0;
+    $nuevo_id_estatus = isset($_POST['nuevo_id_estatus']) ? (int)$_POST['nuevo_id_estatus'] : 0;
+
+    $respuesta = $pagosCtrl->cambiarEstatusPago($id_pago, $nuevo_id_estatus);
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**---- NUEVA RUTA POST: CREACIÓN DE PERMISOS ------ */
+if (isset($_GET['action']) && $_GET['action'] === 'crear_permiso' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    // Captura limpia de los campos del formulario
+    $permiso     = $_POST['nombre_permiso'] ?? '';
+    $descripcion = $_POST['descripcion'] ?? '';
+
+    if (empty(trim($permiso)) || empty(trim($descripcion))) {
+        echo json_encode(["status" => false, "message" => "Todos los campos son estrictamente obligatorios."], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Ejecutamos el método del controlador de permisos
+    $respuesta = $permisosCtrl->crearPermiso($permiso, $descripcion);
 
     if (is_string($respuesta)) {
         $respuesta = json_decode($respuesta, true);

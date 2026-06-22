@@ -63,7 +63,7 @@ class seederSedes extends Seeder
         ];
 
         foreach ($sedesList as $sede) {
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.sedes (estado, municipio, sede) VALUES (:estado, :municipio, :sede)");
+            $stmt = $this->pdo->prepare("INSERT INTO sedes (estado, municipio, sede) VALUES (:estado, :municipio, :sede)");
             $stmt->execute([
                 ':estado' => $sede['estado'],
                 ':municipio' => $sede['municipio'],

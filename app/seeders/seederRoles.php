@@ -20,7 +20,7 @@ require_once __DIR__ . '/../core/conn.php';
             ];
 
             foreach ($rolesList as $rol) {
-                $stmt = $this->pdo->prepare("INSERT INTO administracion.roles (nombre_rol, descripcion) VALUES (:nombre_rol, :descripcion)");
+                $stmt = $this->pdo->prepare("INSERT INTO roles (nombre_rol, descripcion) VALUES (:nombre_rol, :descripcion)");
                 $stmt->execute([
                     ':nombre_rol' => $rol['nombre_rol'],
                     ':descripcion' => $rol['descripcion']

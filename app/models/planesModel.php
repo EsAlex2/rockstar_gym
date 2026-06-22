@@ -5,10 +5,7 @@ require_once __DIR__ . '/../core/conn.php';
 /* =================================================================================
  * planModel.php
  * Modelo para la gestión de los planes del gimnasio en el sistema de administración.
- * Proporciona métodos para obtener, crear y actualizar los planes de entrenamiento/suscripción.
- * Utiliza PDO para la interacción con la base de datos y maneja errores de conexión y ejecución.
  * Autor: Alex Madrid
- * Fecha: 12/06/2026
  * ==============================================================================
  */
 
@@ -24,7 +21,6 @@ class planModel extends Model
 
     /**
      * Registra un nuevo plan en el sistema.
-     * Convierte el nombre a mayúsculas para mantener la consistencia y evita duplicados.
      */
     public function crearPlan(string $nombre_plan, string $descripcion, float $precio, int $duracion_dias)
     {
@@ -33,10 +29,10 @@ class planModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-
             $mayusNombre = strtoupper($nombre_plan);
 
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.planes WHERE nombre_plan = :nombre");
+            // Removido el prefijo 'administracion.'
+            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE nombre_plan = :nombre");
             $checkDuplicate->bindParam(':nombre', $mayusNombre, PDO::PARAM_STR);
             $checkDuplicate->execute();
 
@@ -44,7 +40,8 @@ class planModel extends Model
                 return ["error" => "Ya existe un plan registrado con el nombre: " . $nombre_plan];
             }
 
-            $query = $this->pdo->prepare("INSERT INTO administracion.planes (id_estatus, nombre_plan, descripcion, precio, duracion_dias) VALUES (:id_estatus, :nombre, :descripcion, :precio, :duracion)");
+            // Removido el prefijo 'administracion.'
+            $query = $this->pdo->prepare("INSERT INTO planes (id_estatus, nombre_plan, descripcion, precio, duracion_dias) VALUES (:id_estatus, :nombre, :descripcion, :precio, :duracion)");
             $estatus_default = 1;
 
             $query->bindParam(':id_estatus', $estatus_default, PDO::PARAM_INT);
@@ -79,7 +76,8 @@ class planModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $sql = $this->pdo->prepare("SELECT id, id_estatus, nombre_plan, descripcion, precio, duracion_dias FROM administracion.planes");
+            // Removido el prefijo 'administracion.'
+            $sql = $this->pdo->prepare("SELECT id, id_estatus, nombre_plan, descripcion, precio, duracion_dias FROM planes");
             $sql->execute();
             $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
 
@@ -99,8 +97,8 @@ class planModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            // 1era Validación: Verificar si el plan existe en la tabla
-            $checkPlan = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.planes WHERE nombre_plan = :nombre_plan");
+            // 1era Validación: Verificar si el plan existe en la tabla (Removido prefijo)
+            $checkPlan = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE nombre_plan = :nombre_plan");
             $checkPlan->bindParam(':nombre_plan', $nombre_plan, PDO::PARAM_STR);
             $checkPlan->execute();
 
@@ -108,10 +106,10 @@ class planModel extends Model
                 return ["error" => "El plan solicitado no existe en la base de datos"];
             }
 
-            // INNER JOIN para traer el nombre del estatus de forma limpia, similar a tu método de entrenadores
+            // Removido prefijo de esquema 'administracion.' de 'planes' y 'estatus'
             $buscarInfo = $this->pdo->prepare("SELECT a.id, b.nombre_estatus AS Estatus, a.nombre_plan AS Plan, a.descripcion AS Descripcion, a.precio AS Precio, a.duracion_dias AS Duracion
-                FROM administracion.planes a
-                INNER JOIN administracion.estatus b ON a.id_estatus = b.id
+                FROM planes a
+                INNER JOIN estatus b ON a.id_estatus = b.id
                 WHERE a.nombre_plan = :nombre_plan");
 
             $buscarInfo->bindParam(':nombre_plan', $nombre_plan, PDO::PARAM_STR);
@@ -127,7 +125,6 @@ class planModel extends Model
 
     /**
      * Actualiza los datos de un plan existente.
-     * Realiza validaciones de existencia y evita colisiones de nombres duplicados.
      */
     public function actualizarPlan(int $id_plan, string $nombre_plan, string $descripcion, float $precio, int $duracion_dias, int $id_estatus)
     {
@@ -136,7 +133,8 @@ class planModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $checkExist = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.planes WHERE id = :id");
+            // Removido prefijo
+            $checkExist = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE id = :id");
             $checkExist->bindParam(':id', $id_plan, PDO::PARAM_INT);
             $checkExist->execute();
 
@@ -146,7 +144,8 @@ class planModel extends Model
 
             $mayusNombre = strtoupper($nombre_plan);
 
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.planes WHERE nombre_plan = :nombre AND id != :id");
+            // Removido prefijo
+            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE nombre_plan = :nombre AND id != :id");
             $checkDuplicate->bindParam(':nombre', $mayusNombre, PDO::PARAM_STR);
             $checkDuplicate->bindParam(':id', $id_plan, PDO::PARAM_INT);
             $checkDuplicate->execute();
@@ -155,7 +154,8 @@ class planModel extends Model
                 return ["error" => "No se pudo actualizar. Ya existe otro plan registrado con el nombre: " . $nombre_plan];
             }
 
-            $query = $this->pdo->prepare("UPDATE administracion.planes 
+            // Removido prefijo
+            $query = $this->pdo->prepare("UPDATE planes 
             SET id_estatus = :id_estatus, nombre_plan = :nombre, descripcion = :descripcion, precio = :precio, duracion_dias = :duracion 
             WHERE id = :id");
 

@@ -5,20 +5,12 @@ require_once __DIR__ . '/../core/conn.php';
 /* =================================================================================
  * clientesModel.php
  * Modelo para la gestión de clientes del gimnasio en el sistema de administración.
- * Proporciona métodos para obtener, crear y actualizar entrenadores.
- * Utiliza PDO para la interacción con la base de datos y maneja errores de conexión y ejecución.
  * Autor: Alex Madrid
- * Fecha: 11/06/2026
  * ==============================================================================
  */
 
 class ClientesModel extends Model
 {
-    /**
-     * creamos una funcion para generar codigos de acceso en base las iniciales y la cedula de identidad
-     * ejemplo: A + 27 + J + 391 (A27J391)
-     */
-
     protected $pdo;
 
     public function __construct($pdo)
@@ -35,7 +27,7 @@ class ClientesModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            $query = $this->pdo->prepare("SELECT * FROM administracion.personas WHERE id = :persona_id");
+            $query = $this->pdo->prepare("SELECT * FROM personas WHERE id = :persona_id");
             $query->bindParam(':persona_id', $id_persona, PDO::PARAM_INT);
             $query->execute();
             $persona = $query->fetch(PDO::FETCH_ASSOC);
@@ -73,7 +65,7 @@ class ClientesModel extends Model
             }
 
             //Validacion, consulta si existe la persona
-            $checkPersona = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.personas WHERE id = :persona_id");
+            $checkPersona = $this->pdo->prepare("SELECT COUNT(*) FROM personas WHERE id = :persona_id");
             $checkPersona->bindParam(':persona_id', $id_persona, PDO::PARAM_INT);
             $checkPersona->execute();
 
@@ -90,7 +82,7 @@ class ClientesModel extends Model
 
             $codigoGenerado = $accessResult['codigo_acceso'];
 
-            $checkAccesDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.clientes WHERE id_persona = :id_persona AND codigo_acceso = :codigo_acceso");
+            $checkAccesDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM clientes WHERE id_persona = :id_persona AND codigo_acceso = :codigo_acceso");
             $checkAccesDuplicate->bindParam(':id_persona', $id_persona, PDO::PARAM_INT);
             $checkAccesDuplicate->bindParam(':codigo_acceso', $codigoGenerado, PDO::PARAM_STR);
             $checkAccesDuplicate->execute();
@@ -102,7 +94,7 @@ class ClientesModel extends Model
             $estatus_activo = 1;
             $fecha_hoy = date('Y-m-d');
             
-            $insert = $this->pdo->prepare("INSERT INTO administracion.clientes (id_estatus, id_persona, codigo_acceso, fecha_inscripcion)
+            $insert = $this->pdo->prepare("INSERT INTO clientes (id_estatus, id_persona, codigo_acceso, fecha_inscripcion)
             VALUES (:id_estatus, :id_persona, :codigo_acceso, :fecha_inscripcion)");
 
             $insert->bindParam(':id_estatus', $estatus_activo, PDO::PARAM_INT);
@@ -126,27 +118,34 @@ class ClientesModel extends Model
         }
     }
 
-    public function listarClientes(){
+
+
+    public function listarClientes()
+    {
         try {
             if (!$this->pdo) {
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            /**
-             * realizamos un INNER JOIN para trer de la tabla de personas la informacion basica del cliente, ademas su informacion en la 
-             * tabla de clientes
-             */
+            // MySQL utiliza CONCAT() para unir cadenas de texto
+            $sql = $this->pdo->prepare("SELECT 
+                a.id, 
+                b.nombre_estatus AS Estatus, 
+                c.primer_nombre, 
+                c.primer_apellido, 
+                CONCAT(c.primer_nombre, ' ', c.primer_apellido) AS Cliente, 
+                a.fecha_inscripcion, 
+                a.codigo_acceso 
+            FROM clientes a
+            INNER JOIN estatus b ON a.id_estatus = b.id
+            INNER JOIN personas c ON a.id_persona = c.id");
 
-            $sql = $this->pdo->prepare("SELECT b.nombre_estatus As Estatus, c.primer_nombre || '  ' || c.primer_apellido As Cliente, fecha_inscripcion, codigo_acceso 
-            FROM administracion.clientes a
-            INNER JOIN administracion.estatus b ON a.id_estatus = b.id
-            INNER JOIN administracion.personas c ON a.id_persona = c.id");
             $sql->execute();
             $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
 
             return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
         } catch (PDOException $e) {
-            return ["error" => "Error al obtener usuarios: " . $e->getMessage()];
+            return ["error" => "Error al listar clientes: " . $e->getMessage()];
         }
     }
 }

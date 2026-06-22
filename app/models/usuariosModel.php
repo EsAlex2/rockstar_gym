@@ -34,6 +34,7 @@ class usuariosModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
+            // Removido el prefijo 'administracion.' de todas las tablas relacionadas
             $stmt = $this->pdo->prepare("SELECT 
                 u.id AS id_usuario, 
                 u.email_user, 
@@ -42,10 +43,10 @@ class usuariosModel extends Model
                 p.cedula_identidad, 
                 p.primer_nombre, 
                 p.primer_apellido
-                FROM administracion.usuarios u
-                INNER JOIN administracion.personas p ON u.id_persona = p.id
-                INNER JOIN administracion.roles r ON u.id_rol = r.id
-                INNER JOIN administracion.estatus e ON u.id_estatus = e.id
+                FROM usuarios u
+                INNER JOIN personas p ON u.id_persona = p.id
+                INNER JOIN roles r ON u.id_rol = r.id
+                INNER JOIN estatus e ON u.id_estatus = e.id
                 ORDER BY u.id DESC");
             $stmt->execute();
             $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -66,16 +67,16 @@ class usuariosModel extends Model
                 return ["error" => "Error de conexión a la base de datos"];
             }
 
-            // 1. Validar si el nombre de usuario ya existe
-            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE email_user = :email_user");
+            // 1. Validar si el nombre de usuario ya existe (Removido prefijo)
+            $checkUser = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email_user = :email_user");
             $checkUser->bindParam(':email_user', $usuario);
             $checkUser->execute();
             if ($checkUser->fetchColumn() > 0) {
                 return ["error" => "El correo electronico '{$usuario}' ya se encuentra registrado"];
             }
 
-            // 2. Validar si esa persona ya posee un usuario asignado
-            $checkPersona = $this->pdo->prepare("SELECT COUNT(*) FROM administracion.usuarios WHERE id_persona = :id_persona");
+            // 2. Validar si esa persona ya posee un usuario asignado (Removido prefijo)
+            $checkPersona = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE id_persona = :id_persona");
             $checkPersona->bindParam(':id_persona', $id_persona);
             $checkPersona->execute();
             if ($checkPersona->fetchColumn() > 0) {
@@ -86,7 +87,8 @@ class usuariosModel extends Model
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             $id_estatus = 1; // Estatus activo por defecto según tu lógica base
 
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.usuarios (id_persona, email_user, password_hash, id_rol, id_estatus, creado_en) 
+            // Removido prefijo. La función now() es válida en MySQL
+            $stmt = $this->pdo->prepare("INSERT INTO usuarios (id_persona, email_user, password_hash, id_rol, id_estatus, creado_en) 
                 VALUES (:id_persona, :email_user, :password, :id_rol, :id_estatus, now())");
             
             $stmt->bindParam(':id_persona', $id_persona);

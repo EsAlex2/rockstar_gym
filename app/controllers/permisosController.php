@@ -51,21 +51,16 @@ class permisosController extends Controllers
     /**
      * Crea un nuevo permiso en el sistema validando los campos obligatorios
      */
-    public function crearPermiso(array $datos)
+    public function crearPermiso(string $permiso, string $desc)
     {
-        $camposObligatorios = ['nombre_permiso', 'descripcion'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+            if (empty($permiso) || empty(trim($desc))) {
+            return $this->response(false, "Todos los campos son estrictamente obligatorios");
         }
+    
 
-        $nombre_permiso = trim($datos['nombre_permiso']);
-        // La descripción es opcional en la tabla (puede ser NULL), si no viene guardamos un string vacío o nulo
-        $descripcion = isset($datos['descripcion']) ? trim($datos['descripcion']) : '';
+        $nombre_permiso = trim($permiso);
+        $descripcion = isset($desc) ? trim($desc) : '';
 
-        // Llamar al modelo para ejecutar la inserción y las validaciones de duplicados (UNIQUE)
         $request = $this->model->crearPermiso($nombre_permiso, $descripcion);
 
         if (isset($request['error'])) {
@@ -76,8 +71,8 @@ class permisosController extends Controllers
     }
 }
 
-$pruebas = new permisosController($pdo);
+// $pruebas = new permisosController($pdo);
 
-$datos = ["nombre_permiso" => "permiso n2", "descripcion" => "permiso de prueba"];
+// $datos = ["nombre_permiso" => "permiso n2", "descripcion" => "permiso de prueba"];
 
-echo $pruebas->crearPermiso($datos);
+// echo $pruebas->crearPermiso($datos);

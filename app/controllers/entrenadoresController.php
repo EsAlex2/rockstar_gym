@@ -1,4 +1,4 @@
-<?php 
+<?php
 require_once __DIR__ . '/../controllers/controllers.php';
 
 /* * entrenadoresController.php
@@ -20,14 +20,14 @@ class EntrenadoresController extends Controllers
     /**
      * Lista todos los entrenadores registrados en el sistema.
      */
-    public function listarEntrenadores()
+    public function obtenerEntrenadores()
     {
         $data = $this->model->listarEntrenadores();
-        
+
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
-        
+
         return $this->response(true, "Entrenadores obtenidos exitosamente", $data);
     }
 
@@ -37,20 +37,19 @@ class EntrenadoresController extends Controllers
      */
     public function buscarEntrenadorPorCedula(string $cedula_identidad)
     {
-        // Limpiamos un poco el parámetro por seguridad (removiendo espacios en blanco)
         $cedula = trim($cedula_identidad);
 
         if ($cedula === '') {
             return $this->response(false, "La cédula de identidad es obligatoria para la búsqueda");
         }
 
-        $data = $this->model->listarPorCedula($cedula);
+        // CORREGIDO: Se cambia 'listarPorCedula' por 'buscarEntrenadorPorCedula'
+        $data = $this->model->buscarEntrenadorPorCedula($cedula);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
 
-        // Tu modelo ya estructura el array con 'message' y 'data' en caso de éxito
         return $this->response(true, $data['message'], $data['data'] ?? null);
     }
 
@@ -69,7 +68,7 @@ class EntrenadoresController extends Controllers
             }
         }
 
-        $id_persona = (int)$datos['id_persona'];
+        $id_persona = (int) $datos['id_persona'];
         $especialidad = trim($datos['especialidad']);
 
         // Llamada al método del modelo

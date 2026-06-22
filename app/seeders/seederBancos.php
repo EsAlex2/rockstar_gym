@@ -95,7 +95,8 @@ class SeederBancos extends Seeder
         ];
 
         foreach ($bancosList as $banco) {
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.bancos (nombre_banco, descripcion) VALUES (:nombre_banco, :descripcion)");
+            // SINTAXIS CORREGIDA: Se eliminó 'administracion.'
+            $stmt = $this->pdo->prepare("INSERT INTO bancos (nombre_banco, descripcion) VALUES (:nombre_banco, :descripcion)");
             $stmt->execute([
                 ':nombre_banco' => $banco['nombre_banco'],
                 ':descripcion' => $banco['descripcion']

@@ -111,7 +111,7 @@ class SeederPermisos extends Seeder
         ];
 
         foreach ($permisosList as $permiso) {
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.permisos (nombre_permiso, descripcion) VALUES (:nombre_permiso, :descripcion)");
+            $stmt = $this->pdo->prepare("INSERT INTO permisos (nombre_permiso, descripcion) VALUES (:nombre_permiso, :descripcion)");
             $stmt->execute([
                 ':nombre_permiso' => $permiso['nombre_permiso'],
                 ':descripcion' => $permiso['descripcion']

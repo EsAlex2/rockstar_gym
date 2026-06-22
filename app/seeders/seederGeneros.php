@@ -19,7 +19,7 @@ class seederGeneros extends Seeder
         ];
 
         foreach ($generosList as $genero) {
-            $stmt = $this->pdo->prepare("INSERT INTO administracion.generos (descripcion) VALUES (:descripcion)");
+            $stmt = $this->pdo->prepare("INSERT INTO generos (descripcion) VALUES (:descripcion)");
             $stmt->execute([
                 ':descripcion' => $genero['descripcion']
             ]);

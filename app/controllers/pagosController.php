@@ -1,4 +1,4 @@
-<?php 
+<?php
 require_once __DIR__ . '/../controllers/controllers.php';
 
 /* * pagosController.php
@@ -23,11 +23,11 @@ class pagosController extends Controllers
     public function listarPagos()
     {
         $data = $this->model->listarPagos();
-        
+
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
-        
+
         return $this->response(true, "Historial de pagos obtenido exitosamente", $data);
     }
 
@@ -64,35 +64,24 @@ class pagosController extends Controllers
     /**
      * Registra un nuevo pago validando la presencia obligatoria de todos sus campos
      */
-    public function registrarPago(array $datos)
-    {
-        $camposObligatorios = [
-            'id_banco', 
-            'id_cliente', 
-            'id_cliente_plan', 
-            'id_user', 
-            'id_estatus', 
-            'monto', 
-            'fecha_pago', 
-            'cod_referencia'
-        ];
+    public function registrarPago(
+        int $id_banco,
+        int $id_cliente,
+        int $id_cliente_plan,
+        int $id_user,
+        int $id_estatus,
+        float $monto,
+        string $fecha_pago,
+        string $cod_referencia
+    ) {
+        // Sanitización de los strings
+        $fecha_pago = trim($fecha_pago);
+        $cod_referencia = trim($cod_referencia);
 
-        // Verificación de campos obligatorios
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios para registrar el pago");
-            }
+        // Verificación de campos obligatorios (para los strings que no deben venir vacíos)
+        if ($fecha_pago === '' || $cod_referencia === '') {
+            return $this->response(false, "Todos los campos son obligatorios para registrar el pago");
         }
-
-        // Castings y sanitización de datos antes de enviar al modelo
-        $id_banco        = (int)$datos['id_banco'];
-        $id_cliente      = (int)$datos['id_cliente'];
-        $id_cliente_plan = (int)$datos['id_cliente_plan'];
-        $id_user         = (int)$datos['id_user'];
-        $id_estatus      = (int)$datos['id_estatus'];
-        $monto           = (float)$datos['monto'];
-        $fecha_pago      = trim($datos['fecha_pago']);
-        $cod_referencia  = trim($datos['cod_referencia']);
 
         // Validación adicional del monto
         if ($monto <= 0) {
@@ -101,13 +90,13 @@ class pagosController extends Controllers
 
         // Llamar al método seguro del modelo
         $request = $this->model->registrarPago(
-            $id_banco, 
-            $id_cliente, 
-            $id_cliente_plan, 
-            $id_user, 
-            $id_estatus, 
-            $monto, 
-            $fecha_pago, 
+            $id_banco,
+            $id_cliente,
+            $id_cliente_plan,
+            $id_user,
+            $id_estatus,
+            $monto,
+            $fecha_pago,
             $cod_referencia
         );
 
@@ -121,21 +110,15 @@ class pagosController extends Controllers
     /**
      * Modifica el estado del pago para flujos de aprobación o rechazo
      */
-    public function cambiarEstatusPago(array $datos)
+    public function cambiarEstatusPago(int $id, int $id_estatus)
     {
-        $camposObligatorios = ['id', 'id_estatus'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "El ID del pago y el nuevo estatus son obligatorios");
-            }
+        // Validación opcional: Asegurar que los IDs sean mayores a cero
+        if ($id <= 0 || $id_estatus <= 0) {
+            return $this->response(false, "El ID del pago y el nuevo estatus deben ser valores válidos");
         }
 
-        $id_pago          = (int)$datos['id'];
-        $nuevo_id_estatus = (int)$datos['id_estatus'];
-
         // Enviar la solicitud de cambio de estado al modelo
-        $request = $this->model->cambiarEstatusPago($id_pago, $nuevo_id_estatus);
+        $request = $this->model->cambiarEstatusPago($id, $id_estatus);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);

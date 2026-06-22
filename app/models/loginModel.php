@@ -3,10 +3,11 @@
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/../core/conn.php'; 
 
-/* * LoginModel.php
+/* =================================================================================
+ * LoginModel.php
  * Modelo dedicado exclusivamente a la verificación de identidad y credenciales de acceso.
  * Autor: Alex Madrid (Refactorizado)
- * Fecha: 16/06/2026
+ * ==============================================================================
  */
 
 class LoginModel extends Model
@@ -29,14 +30,15 @@ class LoginModel extends Model
                 return false;
             }
 
+            // Removidos los prefijos 'administracion.' de todas las tablas e id_estatus subquery
             $sql = "SELECT u.*, 
                            p.primer_nombre, p.primer_apellido, p.cedula_identidad,
                            r.nombre_rol
-                    FROM administracion.usuarios u
-                    INNER JOIN administracion.personas p ON u.id_persona = p.id
-                    INNER JOIN administracion.roles r ON u.id_rol = r.id
+                    FROM usuarios u
+                    INNER JOIN personas p ON u.id_persona = p.id
+                    INNER JOIN roles r ON u.id_rol = r.id
                     WHERE (u.email_user = :identidad) 
-                      AND u.id_estatus = (SELECT id FROM administracion.estatus WHERE nombre_estatus = 'Activo' LIMIT 1)
+                      AND u.id_estatus = (SELECT id FROM estatus WHERE nombre_estatus = 'Activo' LIMIT 1)
                     LIMIT 1";
             
             $stmt = $this->pdo->prepare($sql);
@@ -44,8 +46,24 @@ class LoginModel extends Model
             
             return $stmt->fetch(PDO::FETCH_ASSOC); 
         } catch (PDOException $e) {
-            error_log("Error crítico en LoginModel::buscarPorIdentidad -> " . $e->getMessage());
             return false;
         }
     }
+
+    public function obtenerPermisosPorRol(int $id_rol) {
+    try {
+        $sql = "SELECT p.nombre_permiso 
+                FROM permisos p
+                INNER JOIN rol_permiso rp ON p.id = rp.id_permiso
+                WHERE rp.id_rol = :id_rol";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['id_rol' => $id_rol]);
+        
+        // Retorna un array plano de strings (ej: ['usuarios.crear', 'pagos.verificar'])
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
 }

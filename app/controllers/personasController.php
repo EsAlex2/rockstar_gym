@@ -43,7 +43,7 @@ class PersonasController extends Controllers
         }
 
         $resultado = [
-            "id" => $data['id'] ?? null, // <--- ¡ESTA ES LA LÍNEA CLAVE QUE FALTABA!
+            "id" => $data['id'] ?? null, 
             "estatus" => $data['estatus'] ?? null,
             "cedula" => $data['cedula_identidad'] ?? null,
             "nombre" => ($data['primer_nombre'] ?? '') . ' ' . ($data['primer_apellido'] ?? ''),
@@ -180,4 +180,4 @@ class PersonasController extends Controllers
 
 // $personas = new PersonasController($pdo);
 
-// echo $personas->crearNuevaPersona(1, '29571480', 'Adriana', 'Estrada', '13/11/2002', '04127698974', 'aaec1311@gmail.com', 'la pastora', 'De los Angeles', 'Castillo');
+// echo $personas->crearNuevaPersona(1, '27391753', 'Alex', 'Madrid', '28/01/1999', '04143770143', 'alexmadrid326@gmail.com', 'jose felix ribas', 'Jonfranc', 'Marin');
