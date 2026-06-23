@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/help.php';
+$user_role = $_SESSION['user_role'] ?? 'Invitado';
+$roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 ?>
 <!DOCTYPE html>
 <html lang="es" class="dark">
@@ -22,12 +24,15 @@ require_once __DIR__ . '/help.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Asignación de especialidades técnicas, perfiles de entrenamiento y estatus del personal.</p>
             </div>
             <div>
+                <!-- Solo los usuarios root, administradores podran crear entrenadores nuevos -->
+                <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
                 <button onclick="abrirModalCrear()" class="px-5 py-2.5 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-500 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Asignar Entrenador
                 </button>
+                <?php endif; ?>
             </div>
         </header>
 

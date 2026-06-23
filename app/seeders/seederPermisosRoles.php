@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../core/conn.php';
 require_once __DIR__ . '/seeder.php';
 
-class seederPermisosRoles extends Seeder
+class SeederPermisosRoles extends Seeder
 {
     public function __construct($pdo)
     {
@@ -13,51 +13,99 @@ class seederPermisosRoles extends Seeder
     public function runSeeder()
     {
         try {
-            // 1. Iniciamos una transacción para asegurar la integridad de los datos
             $this->pdo->beginTransaction();
 
-            /**
-             * 3. Definición de la matriz de permisos
-             * Formato: [id_rol, id_permiso]
-             * * Roles sugeridos (ajusta según tu DB):
-             * 1: ROOT, 2: ADMINISTRADOR, 3: ENTRENADOR, 4: CLIENTE
-             */
-            $data = [
-                // --- ROOT (Acceso Total: 1 al 10) ---
-                [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10],
-
-                // --- ADMINISTRADOR (Gestión operativa) ---
-                [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 6],
-
-                // --- ENTRENADOR (Gestión de entrenamiento y clientes) ---
-                [3, 3], [3, 4], [3, 6], [3, 7],
-
-                // --- CLIENTE (Solo lectura de su información y pagos) ---
-                [4, 4], [4, 8]
+            // 1. Definición de la matriz lógica (Nombre del Rol => [Lista de Permisos])
+            $asignaciones = [
+                'Root' => [
+                    'seguridad.configurar',
+                    'roles.gestionar',
+                    'usuarios.crear',
+                    'usuarios.leer',
+                    'usuarios.actualizar',
+                    'clientes.crear',
+                    'clientes.leer',
+                    'clientes.actualizar',
+                    'planes.gestionar',
+                    'pagos.registrar',
+                    'pagos.verificar',
+                    'pagos.historial',
+                    'clases.gestionar',
+                    'clases.pasar_asistencia',
+                    'clases.ver_horarios',
+                    'clases.reservar',
+                    'mi_perfil.ver',
+                    'mi_perfil.actualizar',
+                    'reportes.financieros',
+                    'reportes.asistencia'
+                ],
+                'Administrador' => [
+                    'usuarios.leer',
+                    'usuarios.actualizar',
+                    'clientes.crear',
+                    'clientes.leer',
+                    'clientes.actualizar',
+                    'planes.gestionar',
+                    'pagos.registrar',
+                    'pagos.verificar',
+                    'pagos.historial',
+                    'clases.gestionar',
+                    'clases.ver_horarios',
+                    'mi_perfil.ver',
+                    'mi_perfil.actualizar',
+                    'reportes.financieros',
+                    'reportes.asistencia'
+                ],
+                'Entrenador' => [
+                    'clientes.leer',
+                    'clases.pasar_asistencia',
+                    'clases.ver_horarios',
+                    'mi_perfil.ver',
+                    'mi_perfil.actualizar'
+                ],
+                'Cliente' => [
+                    'clases.ver_horarios',
+                    'clases.reservar',
+                    'mi_perfil.ver',
+                    'mi_perfil.actualizar'
+                ]
             ];
 
-            // 4. Inserción preparada
-            $stmt = $this->pdo->prepare("INSERT INTO roles_permisos (id_rol, id_permiso) VALUES (:rol, :permiso)");
+            // 2. Preparar sentencias
+            $stmtRol = $this->pdo->prepare("SELECT id FROM roles WHERE nombre_rol = :nombre");
+            $stmtPermiso = $this->pdo->prepare("SELECT id FROM permisos WHERE nombre_permiso = :nombre");
+            $stmtInsert = $this->pdo->prepare("INSERT INTO roles_permisos (id_rol, id_permiso) VALUES (:id_rol, :id_permiso)");
 
-            foreach ($data as $relacion) {
-                $stmt->execute([
-                    ':rol'     => $relacion[0],
-                    ':permiso' => $relacion[1]
-                ]);
+            // 3. Procesar las asignaciones
+            foreach ($asignaciones as $nombreRol => $listaPermisos) {
+                // Obtener ID del rol
+                $stmtRol->execute([':nombre' => $nombreRol]);
+                $rol = $stmtRol->fetch(PDO::FETCH_ASSOC);
+
+                if ($rol) {
+                    foreach ($listaPermisos as $nombrePermiso) {
+                        // Obtener ID del permiso
+                        $stmtPermiso->execute([':nombre' => $nombrePermiso]);
+                        $permiso = $stmtPermiso->fetch(PDO::FETCH_ASSOC);
+
+                        if ($permiso) {
+                            $stmtInsert->execute([
+                                ':id_rol' => $rol['id'],
+                                ':id_permiso' => $permiso['id']
+                            ]);
+                        }
+                    }
+                }
             }
 
-            // 5. Confirmamos cambios
             $this->pdo->commit();
-            echo "Seeder de Roles y Permisos ejecutado correctamente con " . count($data) . " relaciones.";
-
         } catch (Exception $e) {
-            // Revertimos cambios si hay algún error
             $this->pdo->rollBack();
-            echo "Error al ejecutar el seeder: " . $e->getMessage();
+            echo "Error: " . $e->getMessage();
         }
     }
 }
 
-$pruebas = new seederPermisosRoles($pdo);
-
-$pruebas->runSeeder();
+// Ejecución
+// $seeder = new SeederPermisosRoles($pdo);
+// $seeder->runSeeder();

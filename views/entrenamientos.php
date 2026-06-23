@@ -1,4 +1,7 @@
-<?php require_once __DIR__ . '/help.php'; ?>
+<?php require_once __DIR__ . '/help.php'; 
+$user_role = $_SESSION['user_role'] ?? 'Invitado';
+$roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
+?>
 <!DOCTYPE html>
 <html lang="es" class="dark">
 
@@ -22,13 +25,15 @@
                     instructores académicos y sedes operativas.</p>
             </div>
             <div>
-                <button onclick="abrirModalCrear()"
-                    class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Nuevo Entrenamiento
-                </button>
+                <?php if(in_array($user_role, [$roles[0], $roles[1], $roles[2]])): ?>
+                    <button onclick="abrirModalCrear()"
+                        class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Nuevo Entrenamiento
+                    </button>
+                <?php endif; ?>
             </div>
         </header>
 
@@ -126,7 +131,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                                Seleccionar Cliente *
+                                Seleccionar Entrenador *
                             </label>
                             <select name="id_cliente" required
                                 class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-orange-500">

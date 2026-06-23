@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/help.php';
-// Se asume que help.php proveerá: $listaPagos, $listaBancos, $listaClientes, $listaPlanes, $listaEstatus
+$user_role = $_SESSION['user_role'] ?? 'Invitado';
+$roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 ?>
 <!DOCTYPE html>
 <html lang="es" class="dark">
@@ -23,13 +24,16 @@ require_once __DIR__ . '/help.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Auditoría, registro de transacciones de clientes y control de estados de cuenta.</p>
             </div>
             <div>
-                <button onclick="abrirModalCrear()"
-                    class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Registrar Pago
-                </button>
+                <!-- Solo los usuarios root, administradores podran crear entrenadores nuevos -->
+                <?php if(in_array($user_role, [$roles[0], $roles[1], $roles[3]])): ?>
+                    <button onclick="abrirModalCrear()"
+                        class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Registrar Pago
+                    </button>
+                <?php endif; ?>
             </div>
         </header>
 
@@ -37,6 +41,7 @@ require_once __DIR__ . '/help.php';
 
         <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
+                <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
@@ -46,9 +51,12 @@ require_once __DIR__ . '/help.php';
                             <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Fecha Pago</th>
                             <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Monto</th>
                             <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Acciones</th>
+                            <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Acciones</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
+                    
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                         <?php if (!empty($listaPagos) && !isset($listaPagos['error'])): ?>
                             <?php foreach ($listaPagos as $pago): ?>
@@ -87,10 +95,12 @@ require_once __DIR__ . '/help.php';
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 text-center">
-                                        <button onclick="abrirModalEstatus(<?= $pago['id'] ?>, '<?= htmlspecialchars($pago['estatus']) ?>')"
-                                            class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all cursor-pointer">
-                                            Cambiar Estado
-                                        </button>
+                                        <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
+                                            <button onclick="abrirModalEstatus(<?= $pago['id'] ?>, '<?= htmlspecialchars($pago['estatus']) ?>')"
+                                                class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all cursor-pointer">
+                                                Cambiar Estado
+                                            </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -103,6 +113,7 @@ require_once __DIR__ . '/help.php';
                         <?php endif; ?>
                     </tbody>
                 </table>
+                <?php endif; ?>
             </div>
         </div>
 

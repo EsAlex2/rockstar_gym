@@ -8,15 +8,19 @@ require_once __DIR__ . '/seederPermisos.php';
 require_once __DIR__ . '/seederGeneros.php';
 require_once __DIR__ . '/seederBancos.php';
 require_once __DIR__ . '/seederEstatus.php';
+require_once __DIR__ . '/seederPermisosRoles.php';
+require_once __DIR__ . '/personalGym.php';
 
 
 $allSeeders = [
     new seederSedes($pdo),
+    new seederEstatus($pdo),
     new seederRoles($pdo),
     new seederPermisos($pdo),
     new seederGeneros($pdo),
     new seederBancos($pdo),
-    new seederEstatus($pdo)
+    new seederPermisosRoles($pdo),
+    new SeederPersonas($pdo)
 ];
 
 foreach ($allSeeders as $seeder) {

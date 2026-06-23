@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/help.php';
+$user_role = $_SESSION['user_role'] ?? 'Invitado';
+$roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 ?>
 <!DOCTYPE html>
 <html lang="es" class="dark">
@@ -22,14 +24,15 @@ require_once __DIR__ . '/help.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Administración de membresías, códigos de acceso e historial de inscripciones del gimnasio.</p>
             </div>
             <div>
-                <button onclick="abrirModalCrear()" class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Nuevo Cliente
-                </button>
+                <!-- Solo los usuarios root, administradores podran crear clientes nuevos -->
+                <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
+                    <button onclick="abrirModalCrear()" class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs cursor-pointer transition-colors\">
+                        Nuevo Cliente
+                    </button>
+                <?php endif; ?>
             </div>
         </header>
 
-        
 
         <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
@@ -87,7 +90,9 @@ require_once __DIR__ . '/help.php';
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/20">
                     <h3 class="text-base font-bold text-gray-900 dark:text-white">Inscribir Nuevo Cliente</h3>
                     <button type="button" onclick="cerrarModal()" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 cursor-pointer">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     </button>
                 </div>
 
@@ -101,9 +106,11 @@ require_once __DIR__ . '/help.php';
                             <button type="button" onclick="buscarPersona()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold transition-colors cursor-pointer">Buscar</button>
                         </div>
                         <input type="hidden" id="input-persona" name="id_persona" value="">
-                        
+
                         <div id="info-persona-encontrada" class="hidden p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-2">
-                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
                             <div class="text-xs">
                                 <p id="txt-persona-nombre" class="font-semibold text-emerald-800 dark:text-emerald-400"></p>
                                 <p id="txt-persona-correo" class="text-gray-400 mt-0.5"></p>
@@ -128,4 +135,5 @@ require_once __DIR__ . '/help.php';
 
     <script src="../public/js/clientes.js"></script>
 </body>
+
 </html>
