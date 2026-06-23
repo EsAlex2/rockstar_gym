@@ -10,7 +10,9 @@ require_once __DIR__ . '/seederBancos.php';
 require_once __DIR__ . '/seederEstatus.php';
 require_once __DIR__ . '/seederPermisosRoles.php';
 require_once __DIR__ . '/personalGym.php';
-
+require_once __DIR__ . '/seedersPlanes.php';
+require_once __DIR__ . '/seederClientesPlan.php';
+require_once __DIR__ . '/pagosEmulados.php';
 
 $allSeeders = [
     new seederSedes($pdo),
@@ -20,7 +22,10 @@ $allSeeders = [
     new seederGeneros($pdo),
     new seederBancos($pdo),
     new seederPermisosRoles($pdo),
-    new SeederPersonas($pdo)
+    new SeederPersonas($pdo),
+    new SeederPlanes($pdo),
+    new SeederClientesPlanes($pdo),
+    new SeederPagos($pdo)
 ];
 
 foreach ($allSeeders as $seeder) {

@@ -104,7 +104,3 @@ class SeederBancos extends Seeder
         }
     }
 }
-
-$pruebas = new SeederBancos($pdo);
-
-$pruebas->runSeeder();

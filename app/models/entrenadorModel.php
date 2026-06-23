@@ -20,22 +20,30 @@ class entrenadorModel extends Model
     }
 
     public function listarEntrenadores()
-{
-    try {
-        if (!$this->pdo) {
-            return ["error" => "Error de conexión a la base de datos"];
-        }   
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
 
-        $stmt = $this->pdo->prepare("SELECT * FROM entrenadores");
-        $stmt->execute(); // <-- Te faltaba ejecutar la consulta
+            $stmt = $this->pdo->prepare("SELECT 
+            a.id, 
+            b.nombre_estatus AS Estatus, 
+            c.cedula_identidad AS Documento_Identidad, 
+            CONCAT(c.primer_nombre, ' ', c.primer_apellido) AS persona, 
+            a.especialidad
+        FROM entrenadores a
+        INNER JOIN estatus b ON a.id_estatus = b.id
+        INNER JOIN personas c ON a.id_persona = c.id");
+            $stmt->execute();
 
-        // Retornamos todos los registros encontrados
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Retornamos todos los registros encontrados
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    } catch (PDOException $e) {
-        return ["error" => "Error al listar entrenadores: " . $e->getMessage()];
+        } catch (PDOException $e) {
+            return ["error" => "Error al listar entrenadores: " . $e->getMessage()];
+        }
     }
-}
 
 
     public function crearEntrenadores(int $id_persona, string $especialidad)

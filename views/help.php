@@ -95,8 +95,6 @@ if (is_string($respuestaUsuarios)) {
 }
 
 if (is_array($respuestaUsuarios)) {
-    // Como tu controlador usa $this->response(true, "...", $data), 
-    // los registros reales vienen dentro del índice 'data'
     $listaUsuarios = $respuestaUsuarios['data'] ?? [];
 }
 
@@ -323,7 +321,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'crear_cliente' && $_SERVER['R
 }
 
 // =========================================================================
-// 3. ENRUTADOR DE PASARELA API (AL FINAL DEL ARCHIVO)
+// 3. ENRUTADOR DE PASARELA API
 // =========================================================================
 
 /**---- NUEVA RUTA POST: CREACIÓN DE USUARIOS ------ */
