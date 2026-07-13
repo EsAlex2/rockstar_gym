@@ -39,7 +39,7 @@ class entrenamientoHorarioController extends Controllers
         $camposObligatorios = ['id_entrenamiento', 'id_horario', 'dia_semana'];
 
         foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
+            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
                 return $this->response(false, "Todos los campos son obligatorios");
             }
         }
@@ -58,7 +58,7 @@ class entrenamientoHorarioController extends Controllers
         }
 
         // Llamar al modelo para insertar
-        $request = $this->model->crearEntrenamientoHorario($id_entrenamiento, $id_horario, $dia_semana);
+        $request = $this->model->asignarHorarioEntrenamiento($id_entrenamiento, $id_horario, $dia_semana);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
@@ -76,7 +76,7 @@ class entrenamientoHorarioController extends Controllers
         $camposObligatorios = ['id_entrenamiento', 'id_horario', 'dia_semana'];
 
         foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
+            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
                 return $this->response(false, "Todos los campos son obligatorios para eliminar la asignación");
             }
         }
@@ -86,7 +86,7 @@ class entrenamientoHorarioController extends Controllers
         $dia_semana = trim($datos['dia_semana']);
 
         // Llamar al modelo para eliminar
-        $request = $this->model->eliminarEntrenamientoHorario($id_entrenamiento, $id_horario, $dia_semana);
+        $request = $this->model->desasignarHorarioEntrenamiento($id_entrenamiento, $id_horario, $dia_semana);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);

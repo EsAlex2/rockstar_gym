@@ -85,10 +85,10 @@ class horariosController extends Controllers
      */
     public function actualizarHorario(array $datos)
     {
-        $camposObligatorios = ['hora_inicio', 'hora_fin'];
+        $camposObligatorios = ['id', 'hora_inicio', 'hora_fin'];
 
         foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
+            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
                 return $this->response(false, "Todos los campos son obligatorios");
             }
         }

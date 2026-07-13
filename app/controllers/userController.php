@@ -51,7 +51,7 @@ class UsuariosController extends Controllers
         }
         
         if (strlen($password) < 8) {
-            return $this->response(false, "La contraseña debe tener al menos 15 caracteres");
+            return $this->response(false, "La contraseña debe tener al menos 8 caracteres");
         }
         
         $passGenerico = $password;

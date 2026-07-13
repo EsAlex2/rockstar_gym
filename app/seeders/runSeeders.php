@@ -11,6 +11,8 @@ require_once __DIR__ . '/seederEstatus.php';
 require_once __DIR__ . '/seederPermisosRoles.php';
 require_once __DIR__ . '/personalGym.php';
 require_once __DIR__ . '/seedersPlanes.php';
+require_once __DIR__ . '/seederClientes.php';
+require_once __DIR__ . '/seederUsuarios.php';
 require_once __DIR__ . '/seederClientesPlan.php';
 require_once __DIR__ . '/pagosEmulados.php';
 
@@ -23,6 +25,8 @@ $allSeeders = [
     new seederBancos($pdo),
     new seederPermisosRoles($pdo),
     new SeederPersonas($pdo),
+    new SeederUsuarios($pdo),
+    new SeederClientes($pdo),
     new SeederPlanes($pdo),
     new SeederClientesPlanes($pdo),
     new SeederPagos($pdo)

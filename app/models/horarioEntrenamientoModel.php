@@ -98,4 +98,33 @@ class entrenamientoHorariosModel extends Model
             return ["error" => "Error al eliminar la asignación: " . $e->getMessage()];
         }
     }
+
+    /**
+     * Listar todos los horarios asignados a los entrenamientos
+     */
+    public function listarEntrenamientosConHorarios()
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("SELECT 
+                eh.id_entrenamiento,
+                e.nombre_entrenamiento,
+                eh.id_horario,
+                h.hora_inicio,
+                h.hora_fin,
+                eh.dia_semana
+                FROM entrenamiento_horarios eh
+                INNER JOIN entrenamiento e ON eh.id_entrenamiento = e.id
+                INNER JOIN horarios h ON eh.id_horario = h.id");
+            $stmt->execute();
+            $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return empty($resultado) ? ["error" => "No hay horarios asignados a entrenamientos"] : $resultado;
+        } catch (PDOException $e) {
+            return ["error" => "Error al listar horarios de entrenamientos: " . $e->getMessage()];
+        }
+    }
 }

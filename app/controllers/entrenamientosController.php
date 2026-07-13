@@ -80,25 +80,26 @@ class EntrenamientosController extends Controllers
 
     /**
      * Actualiza los datos de un entrenamiento existente.
-     * @param array $datos Debe contener ['id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion']
+     * @param array $datos Debe contener ['id', 'id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion']
      */
     public function actualizarEntrenamientos(array $datos)
     {
-        $camposObligatorios = ['id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion'];
+        $camposObligatorios = ['id', 'id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion'];
 
         foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
+            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
                 return $this->response(false, "Todos los campos son obligatorios");
             }
         }
 
+        $id = (int)$datos['id'];
         $id_entrenador = (int)$datos['id_entrenador'];
         $id_sede = (int)$datos['id_sede'];
         $nombre = trim($datos['nombre_entrenamiento']);
         $descripcion = trim($datos['descripcion']);
 
         // Llamada al método de actualización del modelo
-        $request = $this->model->actualizarEntrenamientos($id_entrenador, $id_sede, $nombre, $descripcion);
+        $request = $this->model->actualizarEntrenamiento($id, $id_entrenador, $id_sede, $nombre, $descripcion);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);

@@ -24,6 +24,7 @@ class pagosModel extends Model
     /**
      * Registra un nuevo pago en el sistema.
      * Valida la existencia previa del código de referencia para evitar colisiones.
+     * Resuelve el plan (recibido como ID de plan en id_cliente_plan) en la tabla clientes_planes.
      */
     public function registrarPago(
         int $id_banco, 
@@ -42,7 +43,7 @@ class pagosModel extends Model
 
             $refLimpia = strtoupper(trim($cod_referencia));
 
-            // Removido el prefijo 'administracion.'
+            // 1. Validar el código de referencia duplicado
             $checkRef = $this->pdo->prepare("SELECT COUNT(*) FROM pagos WHERE cod_referencia = :ref");
             $checkRef->bindParam(':ref', $refLimpia, PDO::PARAM_STR);
             $checkRef->execute();
@@ -51,14 +52,54 @@ class pagosModel extends Model
                 return ["error" => "El código de referencia bancaria '" . $cod_referencia . "' ya fue registrado previamente."];
             }
 
-            // Removido el prefijo 'administracion.'
+            // 2. Obtener duración del plan a partir del ID de plan enviado (en id_cliente_plan)
+            $stmtPlan = $this->pdo->prepare("SELECT duracion_dias FROM planes WHERE id = :id_plan");
+            $stmtPlan->bindParam(':id_plan', $id_cliente_plan, PDO::PARAM_INT);
+            $stmtPlan->execute();
+            $plan = $stmtPlan->fetch(PDO::FETCH_ASSOC);
+
+            if (!$plan) {
+                return ["error" => "El plan seleccionado no existe en el catálogo."];
+            }
+
+            $duracion_dias = (int)$plan['duracion_dias'];
+
+            // 3. Buscar si el cliente ya posee este plan activo en clientes_planes
+            $stmtCheckCp = $this->pdo->prepare("SELECT id FROM clientes_planes 
+                WHERE id_cliente = :id_cliente AND id_plan = :id_plan AND id_estatus = 1 LIMIT 1");
+            $stmtCheckCp->bindParam(':id_cliente', $id_cliente, PDO::PARAM_INT);
+            $stmtCheckCp->bindParam(':id_plan', $id_cliente_plan, PDO::PARAM_INT);
+            $stmtCheckCp->execute();
+            $cp = $stmtCheckCp->fetch(PDO::FETCH_ASSOC);
+
+            if ($cp) {
+                $resolved_cliente_plan_id = (int)$cp['id'];
+            } else {
+                // 4. Si no tiene el plan activo, crear uno nuevo
+                $fecha_inicio = $fecha_pago;
+                $fecha_vencimiento = date('Y-m-d', strtotime($fecha_inicio . ' + ' . $duracion_dias . ' days'));
+
+                $stmtInsertCp = $this->pdo->prepare("INSERT INTO clientes_planes 
+                    (id_cliente, id_plan, id_estatus, fecha_inicio, fecha_vencimiento) 
+                    VALUES (:id_cliente, :id_plan, 1, :fecha_inicio, :fecha_vencimiento)");
+                
+                $stmtInsertCp->bindParam(':id_cliente', $id_cliente, PDO::PARAM_INT);
+                $stmtInsertCp->bindParam(':id_plan', $id_cliente_plan, PDO::PARAM_INT);
+                $stmtInsertCp->bindParam(':fecha_inicio', $fecha_inicio);
+                $stmtInsertCp->bindParam(':fecha_vencimiento', $fecha_vencimiento);
+                $stmtInsertCp->execute();
+
+                $resolved_cliente_plan_id = (int)$this->pdo->lastInsertId();
+            }
+
+            // 5. Registrar el pago asociándolo a la membresía del cliente (resolved_cliente_plan_id)
             $query = $this->pdo->prepare("INSERT INTO pagos 
                 (id_banco, id_cliente, id_cliente_plan, id_user, id_estatus, monto, fecha_pago, cod_referencia) 
                 VALUES (:id_banco, :id_cliente, :id_cliente_plan, :id_user, :id_estatus, :monto, :fecha_pago, :ref)");
 
             $query->bindParam(':id_banco', $id_banco, PDO::PARAM_INT);
             $query->bindParam(':id_cliente', $id_cliente, PDO::PARAM_INT);
-            $query->bindParam(':id_cliente_plan', $id_cliente_plan, PDO::PARAM_INT);
+            $query->bindParam(':id_cliente_plan', $resolved_cliente_plan_id, PDO::PARAM_INT);
             $query->bindParam(':id_user', $id_user, PDO::PARAM_INT);
             $query->bindParam(':id_estatus', $id_estatus, PDO::PARAM_INT);
             $query->bindParam(':monto', $monto);
@@ -71,7 +112,7 @@ class pagosModel extends Model
                 "success" => true,
                 "message" => "Pago registrado exitosamente de forma segura",
                 "data" => [
-                    "id_pago" => $this->pdo->lastInsertId(), // Totalmente compatible con AUTO_INCREMENT de MySQL
+                    "id_pago" => $this->pdo->lastInsertId(),
                     "monto" => $monto,
                     "cod_referencia" => $refLimpia
                 ]

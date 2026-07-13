@@ -71,11 +71,20 @@ class EntrenamientosModel extends Model
         }
     }
 
-    public function actualizarEntrenamiento(int $id_entrenador, int $id_sede, string $nombre, string $descripcion)
+    public function actualizarEntrenamiento(int $id, int $id_entrenador, int $id_sede, string $nombre, string $descripcion)
     {
         try {
             if (!$this->pdo) {
                 return ["error" => "Error de conexion en la base de datos"];
+            }
+
+            // Validar si el entrenamiento existe
+            $checkEntrenamiento = $this->pdo->prepare("SELECT COUNT(*) FROM entrenamiento WHERE id = :id");
+            $checkEntrenamiento->bindParam(":id", $id, PDO::PARAM_INT);
+            $checkEntrenamiento->execute();
+
+            if ($checkEntrenamiento->fetchColumn() == 0) {
+                return ["error" => "No existe registro del entrenamiento que intenta actualizar"];
             }
 
             $checkEntrenador = $this->pdo->prepare("SELECT COUNT(*) FROM entrenadores WHERE id = :id_entrenador");
@@ -96,8 +105,10 @@ class EntrenamientosModel extends Model
 
             // En MySQL 'NOW()' funciona perfectamente para registrar la estampa de tiempo actual
             $update = $this->pdo->prepare("UPDATE entrenamiento 
-                SET id_entrenador = :id_entrenador, id_sede = :id_sede, nombre_entrenamiento = :nombre, descripcion = :descripcion, actualizado_en = NOW()");
+                SET id_entrenador = :id_entrenador, id_sede = :id_sede, nombre_entrenamiento = :nombre, descripcion = :descripcion, actualizado_en = NOW()
+                WHERE id = :id");
 
+            $update->bindParam(":id", $id, PDO::PARAM_INT);
             $update->bindParam(":id_entrenador", $id_entrenador, PDO::PARAM_INT);
             $update->bindParam(":id_sede", $id_sede, PDO::PARAM_INT);
             $update->bindParam(":nombre", $nombre, PDO::PARAM_STR);
@@ -108,6 +119,7 @@ class EntrenamientosModel extends Model
                 "success" => true,
                 "message" => "Entrenamiento actualizado exitosamente",
                 "data" => [
+                    "id" => $id,
                     "id_entrenador" => $id_entrenador,
                     "id_sede" => $id_sede,
                     "nombre_entrenamiento" => $nombre,
