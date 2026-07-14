@@ -115,4 +115,58 @@ class entrenadorModel extends Model
             return ["error" => "Error al buscar entrenador: " . $e->getMessage()];
         }
     }
+
+    public function actualizarEntrenador(int $id_entrenador, string $especialidad, int $id_estatus)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM entrenadores WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_entrenador, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el entrenador en la base de datos"];
+            }
+
+            $especialidadFormateada = ucwords(strtolower(trim($especialidad)));
+
+            $stmt = $this->pdo->prepare("UPDATE entrenadores SET especialidad = :especialidad, id_estatus = :id_estatus, actualizado_en = NOW() WHERE id = :id");
+            $stmt->bindParam(':id', $id_entrenador, PDO::PARAM_INT);
+            $stmt->bindParam(':especialidad', $especialidadFormateada, PDO::PARAM_STR);
+            $stmt->bindParam(':id_estatus', $id_estatus, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Entrenador actualizado exitosamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al actualizar el entrenador: " . $e->getMessage()];
+        }
+    }
+
+    public function eliminarEntrenador(int $id_entrenador)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM entrenadores WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_entrenador, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el entrenador en la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM entrenadores WHERE id = :id");
+            $stmt->bindParam(':id', $id_entrenador, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Entrenador eliminado exitosamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al eliminar el entrenador: " . $e->getMessage()];
+        }
+    }
 }

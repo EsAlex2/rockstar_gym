@@ -107,6 +107,92 @@ class EntrenamientosController extends Controllers
 
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
+
+    public function eliminarEntrenamiento(int $id)
+    {
+        if (empty($id) || $id <= 0) {
+            return $this->response(false, "El ID del entrenamiento es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarEntrenamiento($id);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Entrenamiento eliminado exitosamente");
+    }
+
+    public function inscribirCliente(int $id_cliente, int $id_entrenamiento)
+    {
+        if ($id_cliente <= 0 || $id_entrenamiento <= 0) {
+            return $this->response(false, "El ID del cliente y del entrenamiento son obligatorios");
+        }
+
+        $request = $this->model->inscribirClienteEntrenamiento($id_cliente, $id_entrenamiento);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Cliente inscrito exitosamente");
+    }
+
+    public function desinscribirCliente(int $id_cliente, int $id_entrenamiento)
+    {
+        if ($id_cliente <= 0 || $id_entrenamiento <= 0) {
+            return $this->response(false, "El ID del cliente y del entrenamiento son obligatorios");
+        }
+
+        $request = $this->model->desinscribirClienteEntrenamiento($id_cliente, $id_entrenamiento);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Cliente desinscrito exitosamente");
+    }
+
+    public function obtenerClienteEntrenamientos(int $id_cliente)
+    {
+        if ($id_cliente <= 0) {
+            return $this->response(false, "El ID del cliente es obligatorio");
+        }
+
+        $data = $this->model->listarEntrenamientosDeCliente($id_cliente);
+
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
+        }
+
+        return $this->response(true, "Entrenamientos del cliente obtenidos exitosamente", $data);
+    }
+
+    public function obtenerEntrenamientosDisponibles(int $id_cliente)
+    {
+        if ($id_cliente <= 0) {
+            return $this->response(false, "El ID del cliente es obligatorio");
+        }
+
+        $data = $this->model->listarEntrenamientosDisponiblesParaCliente($id_cliente);
+
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
+        }
+
+        return $this->response(true, "Entrenamientos disponibles obtenidos exitosamente", $data);
+    }
+
+    public function obtenerTodosClienteEntrenamientos()
+    {
+        $data = $this->model->listarTodosClienteEntrenamientos();
+
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
+        }
+
+        return $this->response(true, "Todas las inscripciones de entrenamientos obtenidas exitosamente", $data);
+    }
 }
 
 // $pruebas = new EntrenamientosController($pdo);

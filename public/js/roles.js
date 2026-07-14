@@ -100,10 +100,7 @@ form.addEventListener("submit", function (e) {
       if (res.status === true || res.success === true) {
         mostrarToast(res.message || "Operación procesada con éxito", "success");
         cerrarModal();
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
+        actualizarTabla();
       } else {
         mostrarToast(res.message || res.error || "Error al procesar la solicitud", "error");
       }
@@ -112,3 +109,44 @@ form.addEventListener("submit", function (e) {
       mostrarToast(err.message, "error");
     });
 });
+
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-roles-body');
+            const actualTbody = document.getElementById('tabla-roles-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}
+
+function eliminarRol(idRol) {
+  if (confirm("¿Estás seguro de que deseas eliminar este rol? Esta acción podría impedir el acceso de los usuarios vinculados a él.")) {
+    const formData = new FormData();
+    formData.append("id_rol", idRol);
+
+    fetch("help.php?action=eliminar_rol", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((res) => {
+        if (res.status === true || res.success === true) {
+          mostrarToast(res.message || "Rol eliminado exitosamente.", "success");
+          actualizarTabla();
+        } else {
+          mostrarToast(res.message || res.error || "No se pudo eliminar el rol.", "error");
+        }
+      })
+      .catch((err) => {
+        mostrarToast("Error de conexión al intentar eliminar.", "error");
+      });
+  }
+}

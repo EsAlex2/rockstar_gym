@@ -172,4 +172,29 @@ class personasModel extends Model
             return ["error" => "Error al actualizar la persona " . $e->getMessage()];
         }
     }
+
+    public function eliminarPersona(int $id_persona)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM personas WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_persona, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró esta persona en la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM personas WHERE id = :id");
+            $stmt->bindParam(':id', $id_persona, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Persona eliminada correctamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al eliminar la persona: " . $e->getMessage()];
+        }
+    }
 }

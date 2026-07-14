@@ -46,7 +46,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                             <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado Operativo</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                    <tbody id="tabla-entrenadores-body" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                         <?php if (!empty($listaEntrenadores) && !isset($listaEntrenadores['error'])): ?>
                             <?php foreach ($listaEntrenadores as $entrenador): ?>
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition-colors">

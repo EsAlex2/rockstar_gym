@@ -1,16 +1,42 @@
 /**
- * Gestión Asíncrona y Auditoría de Pagos
+ * Gestión Asíncrona y Auditoría de Pagos - CRUD Completo
  * Autor: Alex Madrid
  */
 
 const modalPago = document.getElementById("modal-pago");
-const modalEstatus = document.getElementById("modal-estatus");
 const formPago = document.getElementById("form-pago");
-const formEstatus = document.getElementById("form-estatus");
+
+let accionActual = 'registrar_pago';
 
 // --- MODAL: REGISTRAR PAGO ---
 function abrirModalCrear() {
+  accionActual = 'registrar_pago';
   formPago.reset();
+  document.getElementById("id_pago").value = "";
+  document.getElementById("modal-titulo").textContent = "Registrar Transacción de Pago Seguro";
+  document.getElementById("btn-submit").textContent = "Guardar Transacción";
+  modalPago.classList.remove("hidden");
+  modalPago.classList.add("flex");
+}
+
+// --- MODAL: EDITAR PAGO ---
+function abrirModalEditar(pago) {
+  accionActual = 'actualizar_pago';
+  formPago.reset();
+  
+  document.getElementById("id_pago").value = pago.id;
+  document.getElementById("modal-titulo").textContent = "Editar Transacción de Pago";
+  document.getElementById("btn-submit").textContent = "Actualizar Transacción";
+
+  // Pre-cargar valores
+  document.getElementById("select-cliente").value = pago.id_cliente;
+  document.getElementById("select-plan").value = pago.id_plan;
+  document.getElementById("select-banco").value = pago.id_banco;
+  document.getElementById("select-estatus").value = pago.id_estatus;
+  document.getElementById("input-monto").value = pago.monto;
+  document.getElementById("input-fecha").value = pago.fecha_pago;
+  document.getElementById("input-referencia").value = pago.cod_referencia;
+
   modalPago.classList.remove("hidden");
   modalPago.classList.add("flex");
 }
@@ -20,24 +46,34 @@ function cerrarModal() {
   modalPago.classList.add("hidden");
 }
 
-// --- MODAL: CAMBIAR ESTATUS ---
-function abrirModalEstatus(idPago, estatusActual) {
-  formEstatus.reset();
-  document.getElementById("estatus-id-pago").value = idPago;
-  document.getElementById("txt-estatus-actual").textContent = estatusActual;
-  modalEstatus.classList.remove("hidden");
-  modalEstatus.classList.add("flex");
-}
+// --- ACCION: ELIMINAR PAGO ---
+function eliminarPago(idPago) {
+  if (confirm("¿Estás seguro de que deseas eliminar este registro de pago? Esto también podría eliminar o alterar el estado de la membresía del cliente de forma permanente.")) {
+    const formData = new FormData();
+    formData.append("id_pago", idPago);
 
-function cerrarModalEstatus() {
-  modalEstatus.classList.remove("flex");
-  modalEstatus.classList.add("hidden");
+    fetch("help.php?action=eliminar_pago", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((res) => {
+        if (res.status === true || res.success === true) {
+          mostrarToast(res.message || "Pago y membresía asociados eliminados.", "success");
+          actualizarTabla();
+        } else {
+          mostrarToast(res.message || res.error || "No se pudo eliminar el registro de pago.", "error");
+        }
+      })
+      .catch((err) => {
+        mostrarToast("Error de conexión al intentar eliminar.", "error");
+      });
+  }
 }
 
 // Cerrar modales si se hace click fuera de su caja contenedora
 window.addEventListener("click", (e) => {
   if (e.target === modalPago) cerrarModal();
-  if (e.target === modalEstatus) cerrarModalEstatus();
 });
 
 // Mensajes Toast personalizados y estilizados según diseño base
@@ -69,29 +105,28 @@ function mostrarToast(mensaje, tipo = "success") {
   }, 4000);
 }
 
-// Interceptar envío del formulario de Registro de Pago
+// Interceptar envío del formulario de Registro / Actualización de Pago
 formPago.addEventListener("submit", function (e) {
   e.preventDefault();
 
   const formData = new FormData(this);
 
-  fetch("help.php?action=registrar_pago", {
+  fetch(`help.php?action=${accionActual}`, {
     method: "POST",
     body: formData,
   })
     .then((response) => {
-      if (!response.ok) throw new Error("Error crítico en el servidor de pasarela contable.");
+      if (!response.ok) throw new Error("Error en el servidor durante la transacción.");
       return response.json();
     })
     .then((res) => {
-      if (res.status === true) {
-        mostrarToast(res.message || "Pago procesado y resguardado con éxito", "success");
+      if (res.status === true || res.success === true) {
+        const msg = accionActual === 'registrar_pago' ? "Pago registrado exitosamente." : "Pago actualizado exitosamente.";
+        mostrarToast(res.message || msg, "success");
         cerrarModal();
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        actualizarTabla();
       } else {
-        mostrarToast(res.message || "La pasarela rechazó la inserción del pago.", "error");
+        mostrarToast(res.message || res.error || "La transacción no pudo ser guardada.", "error");
       }
     })
     .catch((err) => {
@@ -99,32 +134,19 @@ formPago.addEventListener("submit", function (e) {
     });
 });
 
-// Interceptar envío del formulario para Cambio de Estatus
-formEstatus.addEventListener("submit", function (e) {
-  e.preventDefault();
-
-  const formData = new FormData(this);
-
-  fetch("help.php?action=cambiar_estatus_pago", {
-    method: "POST",
-    body: formData,
-  })
-    .then((response) => {
-      if (!response.ok) throw new Error("Fallo crítico al alterar el estatus contable.");
-      return response.json();
-    })
-    .then((res) => {
-      if (res.status === true) {
-        mostrarToast(res.message || "Estatus de auditoría modificado correctamente", "success");
-        cerrarModalEstatus();
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      } else {
-        mostrarToast(res.message || "No se pudo cambiar el estado del registro.", "error");
-      }
-    })
-    .catch((err) => {
-      mostrarToast(err.message, "error");
-    });
-});
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-pagos-body');
+            const actualTbody = document.getElementById('tabla-pagos-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}

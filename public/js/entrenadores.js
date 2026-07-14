@@ -149,7 +149,7 @@ form.addEventListener("submit", function (e) {
           "success",
         );
         cerrarModal();
-        setTimeout(() => location.reload(), 1200);
+        actualizarTabla();
       } else {
         mostrarToast(
           res.message || res.error || "No se pudo asignar la especialidad.",
@@ -165,3 +165,20 @@ form.addEventListener("submit", function (e) {
       );
     });
 });
+
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-entrenadores-body');
+            const actualTbody = document.getElementById('tabla-entrenadores-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}

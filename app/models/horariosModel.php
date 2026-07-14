@@ -19,6 +19,21 @@ class horariosModel extends Model
         $this->pdo = $pdo;
     }
 
+    public function listarHorarios()
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("SELECT id, hora_inicio, hora_fin FROM horarios ORDER BY hora_inicio ASC");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return ["error" => "Error al obtener horarios: " . $e->getMessage()];
+        }
+    }
+
     public function crearHorario(string $hora_inicio, string $hora_fin)
     {
         try {
@@ -50,6 +65,31 @@ class horariosModel extends Model
             ];
         } catch (PDOException $e) {
             return ["error" => "Error al crear horario: " . $e->getMessage()];
+        }
+    }
+
+    public function buscarHorarioPorId(int $id_horario)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("SELECT id, hora_inicio, hora_fin, creado_en, actualizado_en FROM horarios WHERE id = :id");
+            $stmt->bindParam(':id', $id_horario, PDO::PARAM_INT);
+            $stmt->execute();
+            $res = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$res) {
+                return ["error" => "No se encontró el horario"];
+            }
+
+            return [
+                "success" => true,
+                "data" => [$res]
+            ];
+        } catch (PDOException $e) {
+            return ["error" => "Error al buscar horario: " . $e->getMessage()];
         }
     }
 
@@ -95,6 +135,31 @@ class horariosModel extends Model
             ];
         } catch (PDOException $e) {
             return ["error" => "Error al actualizar horario: " . $e->getMessage()];
+        }
+    }
+
+    public function eliminarHorario(int $id_horario)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM horarios WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_horario, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el horario especificado en la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM horarios WHERE id = :id");
+            $stmt->bindParam(':id', $id_horario, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Horario eliminado exitosamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al eliminar el horario: " . $e->getMessage()];
         }
     }
 }

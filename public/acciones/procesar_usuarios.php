@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $db = $pdo ?? null;
-$userCtrl = new userController($db);
+$userCtrl = new UsuariosController($db);
 
 $action = $_GET['action'] ?? '';
 
@@ -57,8 +57,9 @@ try {
             $id_rol     = isset($_POST['id_rol']) ? (int)$_POST['id_rol'] : 0;
             $username   = isset($_POST['username']) ? trim($_POST['username']) : '';
             $email      = isset($_POST['email']) ? trim($_POST['email']) : '';
+            $password   = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-            $respuesta = $userCtrl->actualizarUsuarios($id_usuario, $id_estatus, $id_rol, $username, $email);
+            $respuesta = $userCtrl->actualizarUsuarios($id_usuario, $id_estatus, $id_rol, $username, $email, $password);
 
             if (is_string($respuesta)) {
                 $respuesta = json_decode($respuesta, true);

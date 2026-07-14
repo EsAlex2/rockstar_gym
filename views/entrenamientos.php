@@ -51,14 +51,23 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                                 Complejo</th>
                             <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado
                             </th>
+                            <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">
+                                Acciones</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                    <tbody id="tabla-entrenamientos-body" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                         <?php if (!empty($listaEntrenamientos) && !isset($listaEntrenamientos['error'])): ?>
                             <?php foreach ($listaEntrenamientos as $entrenamiento): ?>
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition-colors">
                                     <td class="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                                         <?= htmlspecialchars($entrenamiento['nombre_entrenamiento']) ?>
+                                        <?php if (!empty($entrenamiento['descripcion'])): ?>
+                                            <div class="text-xs text-gray-400 mt-0.5 font-normal truncate max-w-xs">
+                                                <?= htmlspecialchars($entrenamiento['descripcion']) ?>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 text-gray-700 dark:text-gray-200 font-medium">
                                         <?= htmlspecialchars(($entrenamiento['primer_nombre'] ?? 'N/A') . ' ' . ($entrenamiento['primer_apellido'] ?? '')) ?>
@@ -66,13 +75,13 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
-                                            <?= htmlspecialchars($entrenamiento['Sede'] ?? $entrenamiento['sede'] ?? 'No asignada') ?>
+                                            <?= htmlspecialchars($entrenamiento['Sede'] ?? 'No asignada') ?>
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <?php
                                         $estatus = $entrenamiento['Estatus'] ?? 'Activo';
-                                        if (strcasecmp($estatus, 'Activo') === 0 || $estatus == '1'):
+                                        if (strcasecmp($estatus, 'Activo') === 0):
                                             ?>
                                             <span
                                                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
@@ -85,11 +94,35 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                                             </span>
                                         <?php endif; ?>
                                     </td>
+                                    <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button onclick='abrirModalEditar(<?= json_encode($entrenamiento) ?>)'
+                                                class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors cursor-pointer"
+                                                title="Editar Entrenamiento">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                            <button onclick="eliminarEntrenamiento(<?= $entrenamiento['id'] ?>)"
+                                                class="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors cursor-pointer"
+                                                title="Eliminar Entrenamiento">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="4" class="px-6 py-10 text-center text-gray-400 dark:text-gray-500">
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-400 dark:text-gray-500">
                                     No se encontraron entrenamientos bajo el criterio de búsqueda.
                                 </td>
                             </tr>
@@ -120,10 +153,11 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                 </div>
 
                 <form id="form-entrenamiento" class="p-6 space-y-4">
+                    <input type="hidden" name="id_entrenamiento" id="id_entrenamiento">
                     <div>
                         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nombre
                             del Entrenamiento *</label>
-                        <input type="text" name="nombre_entrenamiento" required
+                        <input type="text" name="nombre_entrenamiento" id="input-nombre" required
                             placeholder="Ej: Spinning Pro / Crossfit Avanzado"
                             class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-blue-500">
                     </div>
@@ -133,22 +167,17 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                                 Seleccionar Entrenador *
                             </label>
-                            <select name="id_cliente" required
-                                class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-orange-500">
-                                <option value="">-- Seleccione un cliente --</option>
-                                <?php if (!empty($listaClientes)): ?>
-                                    <?php foreach ($listaClientes as $cli):
-                                        // Evaluamos dinámicamente el ID para evitar el Warning en pantalla
-                                        $id_cliente = $cli['id'] ?? $cli['id_cliente'] ?? null;
-                                        $nombre_cliente = $cli['nombre'] ?? $cli['primer_nombre'] ?? 'Cliente sin nombre';
-
-                                        if ($id_cliente !== null):
-                                            ?>
-                                            <option value="<?= $id_cliente ?>">ID: <?= $id_cliente ?> -
-                                                <?= htmlspecialchars($nombre_cliente) ?></option>
-                                        <?php
-                                        endif;
-                                    endforeach; ?>
+                            <select name="id_entrenador" id="select-entrenador" required
+                                class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-blue-500">
+                                <option value="">-- Seleccione un entrenador --</option>
+                                <?php if (!empty($listaEntrenadores) && !isset($listaEntrenadores['error'])): ?>
+                                    <?php foreach ($listaEntrenadores as $ent): 
+                                        $id_ent = $ent['id'] ?? $ent['id_entrenador'] ?? null;
+                                        $nombre_ent = ($ent['persona'] ?? (($ent['primer_nombre'] ?? '') . ' ' . ($ent['primer_apellido'] ?? '')));
+                                        if ($id_ent !== null):
+                                    ?>
+                                        <option value="<?= $id_ent ?>"><?= htmlspecialchars(trim($nombre_ent)) ?></option>
+                                    <?php endif; endforeach; ?>
                                 <?php endif; ?>
                             </select>
                         </div>
@@ -156,7 +185,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                         <div>
                             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sede
                                 Complejo *</label>
-                            <select name="id_sede" required
+                            <select name="id_sede" id="select-sede" required
                                 class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-blue-500">
                                 <option value="">-- Seleccione --</option>
                                 <?php foreach ($listaSedes as $sede): ?>
@@ -170,7 +199,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                         <label
                             class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descripción
                             del Entrenamiento *</label>
-                        <textarea name="descripcion" rows="3" required
+                        <textarea name="descripcion" id="input-descripcion" rows="3" required
                             placeholder="Defina los objetivos tácticos, intensidad y herramientas necesarias para el entrenamiento..."
                             class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-blue-500"></textarea>
                     </div>
@@ -180,7 +209,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                             class="px-4 py-2 border border-gray-200 dark:border-gray-700 text-sm font-semibold rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
                             Cancelar
                         </button>
-                        <button type="submit"
+                        <button type="submit" id="btn-submit"
                             class="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-500 shadow-xs cursor-pointer">
                             Guardar Planificación
                         </button>

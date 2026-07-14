@@ -99,4 +99,19 @@ class rolesController extends Controllers
 
         return $this->response(true, $request['message'] ?? "Rol actualizado exitosamente", $request['data'] ?? null);
     }
+
+    public function eliminarRol(int $id_rol)
+    {
+        if (empty($id_rol) || $id_rol <= 0) {
+            return $this->response(false, "El ID del rol es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarRol($id_rol);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Rol eliminado exitosamente");
+    }
 }

@@ -1,15 +1,76 @@
 /**
- * Gestión Asíncrona de Entrenamientos
- * Sigue de manera estricta los patrones arquitectónicos UI de personas.js
+ * Gestión Asíncrona de Entrenamientos - CRUD Completo
+ * Autor: Alex Madrid
  */
 
 const modal = document.getElementById('modal-entrenamiento');
 const form = document.getElementById('form-entrenamiento');
 
+let accionActual = 'crear_entrenamiento';
+
 function abrirModalCrear() {
+    accionActual = 'crear_entrenamiento';
     form.reset();
+    document.getElementById('id_entrenamiento').value = '';
+    document.getElementById('modal-titulo').innerText = 'Registrar Nuevo Entrenamiento';
+    document.getElementById('btn-submit').innerText = 'Guardar Planificación';
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+}
+
+function abrirModalEditar(entrenamiento) {
+    accionActual = 'actualizar_entrenamiento';
+    form.reset();
+    document.getElementById('id_entrenamiento').value = entrenamiento.id;
+    document.getElementById('modal-titulo').innerText = 'Editar Entrenamiento';
+    document.getElementById('btn-submit').innerText = 'Actualizar Entrenamiento';
+
+    // Cargar datos en los campos
+    document.getElementById('input-nombre').value = entrenamiento.nombre_entrenamiento;
+    document.getElementById('input-descripcion').value = entrenamiento.descripcion || '';
+
+    // Seleccionar entrenador
+    const selectEntrenador = document.getElementById('select-entrenador');
+    if (selectEntrenador) {
+        Array.from(selectEntrenador.options).forEach(opt => {
+            opt.selected = (opt.value == entrenamiento.id_entrenador);
+        });
+    }
+
+    // Seleccionar sede
+    const selectSede = document.getElementById('select-sede');
+    if (selectSede) {
+        Array.from(selectSede.options).forEach(opt => {
+            opt.selected = (opt.value == entrenamiento.id_sede);
+        });
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function eliminarEntrenamiento(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar este entrenamiento? Esta acción es irreversible.")) {
+        const formData = new FormData();
+        formData.append('id_entrenamiento', id);
+
+        fetch('help.php?action=eliminar_entrenamiento', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.status === true || res.success === true) {
+                mostrarToast(res.message || "Entrenamiento eliminado exitosamente.", "success");
+                actualizarTabla();
+            } else {
+                mostrarToast(res.message || "Error al eliminar el entrenamiento.", "error");
+            }
+        })
+        .catch(err => {
+            mostrarToast("Error de conexión al eliminar.", "error");
+        });
+    }
 }
 
 function cerrarModal() {
@@ -34,33 +95,29 @@ function mostrarToast(mensaje, tipo = 'success') {
         : 'text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50'     
     }`;
 
-    // Renderización de ícono condicional estructurado
     toast.innerHTML = tipo === 'success' 
         ? `<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${mensaje}</span>`
         : `<svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${mensaje}</span>`;
 
     container.appendChild(toast);
 
-    // Animación fluida de entrada por hardware
     setTimeout(() => {
         toast.classList.remove('translate-y-2', 'opacity-0');
     }, 10);
 
-    // Degradación progresiva de opacidad y remoción de nodo a los 4 segundos
     setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
 
-// Intercepción táctica del procesamiento tradicional de formularios
+// Intercepción del formulario - crear o actualizar según accionActual
 form.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const formData = new FormData(this);
 
-    // Despacho asíncrono controlado hacia nuestro gateway perimetral
-    fetch('help.php?action=crear_entrenamiento', {
+    fetch(`help.php?action=${accionActual}`, {
         method: 'POST',
         body: formData
     })
@@ -69,12 +126,13 @@ form.addEventListener('submit', function(e) {
         return response.json();
     })
     .then(res => {
-        // Tu API devuelve un indicador booleano de éxito (true / false o success)
         if (res.status === true || res.success === true) {
-            mostrarToast(res.message || "Planificación de entrenamiento registrada con éxito.", 'success');
+            const msg = accionActual === 'crear_entrenamiento' 
+                ? "Entrenamiento registrado con éxito." 
+                : "Entrenamiento actualizado con éxito.";
+            mostrarToast(res.message || msg, 'success');
             cerrarModal();
-            // Recarga controlada de la grilla a los 1.2 segundos para sincronizar la UI
-            setTimeout(() => location.reload(), 1200);
+            actualizarTabla();
         } else {
             mostrarToast(res.error || res.message || "No se pudo procesar el entrenamiento.", 'error');
         }
@@ -84,3 +142,20 @@ form.addEventListener('submit', function(e) {
         mostrarToast("Fallo de conexión o error crítico de sintaxis de datos.", 'error');
     });
 });
+
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-entrenamientos-body');
+            const actualTbody = document.getElementById('tabla-entrenamientos-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}

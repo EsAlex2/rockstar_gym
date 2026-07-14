@@ -108,10 +108,25 @@ class planesController extends Controllers
 
         return $this->response(true, $request['message'] ?? "Plan actualizado exitosamente", $request['data'] ?? null);
     }
+
+    public function eliminarPlan(int $id_plan)
+    {
+        if (empty($id_plan) || $id_plan <= 0) {
+            return $this->response(false, "El ID del plan es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarPlan($id_plan);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Plan eliminado exitosamente");
+    }
 }
 
 // --- Zona de Pruebas Adaptada ---
-$pruebas = new planesController($pdo);
+// $pruebas = new planesController($pdo);
 
 // Pasamos los parámetros de forma limpia, separada y respetando los tipos nativos
-echo $pruebas->actualizarPlan(1, 1, "plan2", 1.0, 10, "plan de pruebas");
+// echo $pruebas->actualizarPlan(1, 1, "plan2", 1.0, 10, "plan de pruebas");

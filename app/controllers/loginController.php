@@ -50,7 +50,16 @@ class LoginController extends Controllers
                 $_SESSION['user_id']        = $usuario['id'] ?? null;
                 $_SESSION['user_email']      = $usuario['email_user'];
                 $_SESSION['user_fullname']   = $usuario['primer_nombre'] . ' ' . $usuario['primer_apellido'];
-                $_SESSION['user_role']       = $usuario['nombre_rol'];
+                
+                $role_map = [
+                    'root' => 'Root',
+                    'administrador' => 'Administrador',
+                    'entrenador' => 'Entrenador',
+                    'cliente' => 'Cliente'
+                ];
+                $raw_role = strtolower(trim($usuario['nombre_rol']));
+                $_SESSION['user_role']       = $role_map[$raw_role] ?? $usuario['nombre_rol'];
+
                 // GUARDAR PERMISOS EN SESIÓN
                 $_SESSION['user_permissions'] = $this->model->obtenerPermisosPorRol($usuario['id_rol']);
                 

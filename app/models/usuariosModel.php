@@ -103,4 +103,129 @@ class usuariosModel extends Model
             return ["error" => "Error al crear el usuario: " . $e->getMessage()];
         }
     }
+
+    public function actualizarUsuario(int $id_usuario, int $id_estatus, int $id_rol, string $email_user, string $password = '')
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            // Validar existencia
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el usuario en la base de datos"];
+            }
+
+            // Validar que el correo no esté repetido en otro ID
+            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email_user = :email AND id != :id");
+            $checkDuplicate->bindParam(':email', $email_user);
+            $checkDuplicate->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $checkDuplicate->execute();
+
+            if ($checkDuplicate->fetchColumn() > 0) {
+                return ["error" => "El correo electrónico '{$email_user}' ya está registrado por otro usuario"];
+            }
+
+            if ($password !== '') {
+                $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $this->pdo->prepare("UPDATE usuarios SET id_estatus = :id_estatus, id_rol = :id_rol, email_user = :email_user, password_hash = :pass, actualizado_en = NOW() WHERE id = :id");
+                $stmt->bindParam(':pass', $passwordHash);
+            } else {
+                $stmt = $this->pdo->prepare("UPDATE usuarios SET id_estatus = :id_estatus, id_rol = :id_rol, email_user = :email_user, actualizado_en = NOW() WHERE id = :id");
+            }
+
+            $stmt->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $stmt->bindParam(':id_estatus', $id_estatus, PDO::PARAM_INT);
+            $stmt->bindParam(':id_rol', $id_rol, PDO::PARAM_INT);
+            $stmt->bindParam(':email_user', $email_user, PDO::PARAM_STR);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Usuario actualizado correctamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al actualizar el usuario: " . $e->getMessage()];
+        }
+    }
+
+    public function cambiarPassword(string $email_user, string $password)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email_user = :email");
+            $checkStmt->bindParam(':email', $email_user);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el usuario con ese correo electrónico"];
+            }
+
+            $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+
+            $stmt = $this->pdo->prepare("UPDATE usuarios SET password_hash = :pass, actualizado_en = NOW() WHERE email_user = :email");
+            $stmt->bindParam(':email', $email_user);
+            $stmt->bindParam(':pass', $passwordHash);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Contraseña actualizada exitosamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al cambiar la contraseña: " . $e->getMessage()];
+        }
+    }
+
+    public function eliminarUsuario(int $id_usuario)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el usuario en la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM usuarios WHERE id = :id");
+            $stmt->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Usuario eliminado correctamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al eliminar el usuario: " . $e->getMessage()];
+        }
+    }
+
+    public function cambiarEstatusUsuario(int $id_usuario, int $nuevo_estatus)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE id = :id");
+            $checkStmt->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontró el usuario en la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("UPDATE usuarios SET id_estatus = :estatus, actualizado_en = NOW() WHERE id = :id");
+            $stmt->bindParam(':estatus', $nuevo_estatus, PDO::PARAM_INT);
+            $stmt->bindParam(':id', $id_usuario, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Estado del usuario actualizado correctamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al cambiar estado del usuario: " . $e->getMessage()];
+        }
+    }
 }

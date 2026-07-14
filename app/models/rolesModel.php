@@ -151,4 +151,29 @@ class rolesModel extends Model
             return ["error" => "Error inesperado para actualizar el rol" . $e->getMessage()];
         }
     }
+
+    public function eliminarRol(int $id_rol)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexion a la base de datos"];
+            }
+
+            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM roles WHERE id = :id_rol");
+            $checkStmt->bindParam(':id_rol', $id_rol, PDO::PARAM_INT);
+            $checkStmt->execute();
+
+            if ($checkStmt->fetchColumn() == 0) {
+                return ["error" => "No se encontro el rol especificado en la base de datos"];
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM roles WHERE id = :id_rol");
+            $stmt->bindParam(':id_rol', $id_rol, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return ["success" => true, "message" => "Rol eliminado exitosamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error inesperado al eliminar el rol: " . $e->getMessage()];
+        }
+    }
 }

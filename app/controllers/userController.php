@@ -70,6 +70,80 @@ class UsuariosController extends Controllers
 
         return $this->response(true, $request['message'] ?? "Usuario registrado exitosamente");
     }
+
+    public function actualizarUsuarios(int $id_usuario, int $id_estatus, int $id_rol, string $username, string $email, string $password = '')
+    {
+        if (empty($id_usuario) || empty($id_estatus) || empty($id_rol) || empty(trim($email))) {
+            return $this->response(false, "Todos los campos son estrictamente obligatorios");
+        }
+
+        $email_trim = strtolower(trim($email));
+
+        if (!filter_var($email_trim, FILTER_VALIDATE_EMAIL)) {
+            return $this->response(false, "El formato del correo electrónico no es válido");
+        }
+
+        if ($password !== '' && strlen($password) < 8) {
+            return $this->response(false, "La nueva contraseña debe tener al menos 8 caracteres");
+        }
+
+        $request = $this->usuarioModel->actualizarUsuario($id_usuario, $id_estatus, $id_rol, $email_trim, $password);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Usuario actualizado exitosamente");
+    }
+
+    public function cambiarContraseña(string $username, string $email, string $password)
+    {
+        if (empty(trim($email)) || empty(trim($password))) {
+            return $this->response(false, "Todos los campos son estrictamente obligatorios");
+        }
+
+        if (strlen($password) < 8) {
+            return $this->response(false, "La contraseña debe tener al menos 8 caracteres");
+        }
+
+        $request = $this->usuarioModel->cambiarPassword(trim($email), $password);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Contraseña actualizada exitosamente");
+    }
+
+    public function eliminarUsuario(int $id_usuario)
+    {
+        if (empty($id_usuario) || $id_usuario <= 0) {
+            return $this->response(false, "El ID del usuario es obligatorio y debe ser válido");
+        }
+
+        $request = $this->usuarioModel->eliminarUsuario($id_usuario);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Usuario eliminado correctamente");
+    }
+
+    public function cambiarEstatusUsuario(int $id_usuario, int $nuevo_estatus)
+    {
+        if (empty($id_usuario) || $id_usuario <= 0 || empty($nuevo_estatus) || $nuevo_estatus <= 0) {
+            return $this->response(false, "El ID del usuario y el estatus son obligatorios");
+        }
+
+        $request = $this->usuarioModel->cambiarEstatusUsuario($id_usuario, $nuevo_estatus);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Estado del usuario actualizado correctamente");
+    }
 }
 
 // $pruebas = new UsuariosController($pdo);

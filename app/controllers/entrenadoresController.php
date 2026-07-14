@@ -80,6 +80,36 @@ class EntrenadoresController extends Controllers
 
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
+
+    public function actualizarEntrenador(int $id_entrenador, string $especialidad, int $id_estatus)
+    {
+        if (empty($id_entrenador) || $id_entrenador <= 0 || empty(trim($especialidad)) || empty($id_estatus) || $id_estatus <= 0) {
+            return $this->response(false, "Todos los campos son obligatorios");
+        }
+
+        $request = $this->model->actualizarEntrenador($id_entrenador, $especialidad, $id_estatus);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Entrenador actualizado exitosamente");
+    }
+
+    public function eliminarEntrenador(int $id_entrenador)
+    {
+        if (empty($id_entrenador) || $id_entrenador <= 0) {
+            return $this->response(false, "El ID del entrenador es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarEntrenador($id_entrenador);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Entrenador eliminado exitosamente");
+    }
 }
 
 // $pruebas = new EntrenadoresController($pdo);

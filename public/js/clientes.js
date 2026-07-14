@@ -1,17 +1,53 @@
 /**
- * Control Asíncrono - Gestión de Clientes
+ * Control Asíncrono - Gestión de Clientes (CRUD Completo)
  * Desarrollado bajo especificaciones de Tailwind CSS v4 y UX de Usuarios
  */
 
 const modal = document.getElementById('modal-cliente');
 const form = document.getElementById('form-cliente');
-const infoPersonaBlock = document.getElementById('info-persona-encontrada');
-const inputPersona = document.getElementById('input-persona'); // Referencia directa al input oculto
+const modalTitle = modal.querySelector('h3');
+const divEstatus = document.getElementById('div-estatus');
+const btnSubmit = document.getElementById('btn-submit-cliente');
+
+let accionActual = 'crear_cliente';
 
 function abrirModalCrear() {
     form.reset();
-    infoPersonaBlock.classList.add('hidden');
-    inputPersona.value = ''; // Limpiamos el ID oculto por seguridad al abrir
+    document.getElementById('input-id-cliente').value = '';
+    
+    // Títulos y estados por defecto para creación
+    accionActual = 'crear_cliente';
+    modalTitle.textContent = 'Inscribir Nuevo Cliente';
+    btnSubmit.textContent = 'Inscribir Cliente';
+    divEstatus.classList.add('hidden');
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function abrirModalEditar(client) {
+    form.reset();
+    
+    // Configurar acción de edición
+    accionActual = 'actualizar_cliente';
+    modalTitle.textContent = 'Editar Datos de Cliente';
+    btnSubmit.textContent = 'Actualizar Cliente';
+    divEstatus.classList.remove('hidden');
+
+    // Precargar campos con los datos del cliente
+    document.getElementById('input-id-cliente').value = client.id;
+    document.getElementById('input-cedula').value = client.cedula_identidad;
+    document.getElementById('select-genero').value = client.id_genero;
+    document.getElementById('input-nombre1').value = client.primer_nombre;
+    document.getElementById('input-nombre2').value = client.segundo_nombre || '';
+    document.getElementById('input-apellido1').value = client.primer_apellido;
+    document.getElementById('input-apellido2').value = client.segundo_apellido || '';
+    document.getElementById('input-nacimiento').value = client.fecha_nacimiento;
+    document.getElementById('input-telefono').value = client.telefono;
+    document.getElementById('input-email').value = client.email;
+    document.getElementById('input-direccion').value = client.direccion_habitacion;
+    document.getElementById('select-estatus').value = client.id_estatus;
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
@@ -21,7 +57,7 @@ function cerrarModal() {
     modal.classList.add('hidden');
 }
 
-// Cierre perimetral al clickear fuera del contenedor blanco del modal
+// Cierre al cliquear fuera del contenedor blanco del modal
 window.addEventListener('click', (e) => {
     if (e.target === modal) cerrarModal();
 });
@@ -52,55 +88,44 @@ function mostrarToast(mensaje, tipo = 'success') {
     }, 4000);
 }
 
-// Búsqueda asíncrona de persona por cédula
-function buscarPersona() {
-    const cedulaInput = document.getElementById('buscar-cedula').value;
-    const cedula = cedulaInput.trim();
-
-    if (!cedula) {
-        mostrarToast('Por favor ingrese un número de cédula válido.', 'error');
+// Eliminar un cliente permanentemente
+function eliminarCliente(idCliente) {
+    if (!confirm('¿Está seguro de que desea eliminar permanentemente a este cliente y toda su información asociada?')) {
         return;
     }
 
-    fetch(`help.php?action=buscar_persona&cedula_identidad=${encodeURIComponent(cedula)}`)
-        .then(response => response.json())
-        .then(res => {
-            if (res.status === true && res.data) {
-                // AQUÍ ESTÁ LA SOLUCIÓN: Asignamos el ID al input oculto
-                inputPersona.value = res.data.id; 
-                
-                // Llenamos la cajita verde con los datos
-                document.getElementById('txt-persona-nombre').textContent = res.data.nombre;
-                document.getElementById('txt-persona-correo').textContent = res.data.correo || 'Sin correo registrado';
-                
-                infoPersonaBlock.classList.remove('hidden');
-                mostrarToast('Persona vinculada con éxito. Ya puede generar la inscripción.', 'success');
-            } else {
-                // Si no existe, escondemos la caja y vaciamos el ID
-                infoPersonaBlock.classList.add('hidden');
-                inputPersona.value = ''; 
-                mostrarToast(res.message || 'No se encontró ninguna persona con esa cédula.', 'error');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            mostrarToast('Error de comunicación con el servidor al buscar.', 'error');
-        });
+    const formData = new FormData();
+    formData.append('id_cliente', idCliente);
+
+    fetch('help.php?action=eliminar_cliente', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Fallo al conectar con el servidor.');
+        return response.json();
+    })
+    .then(res => {
+        if (res.status === true || res.success === true) {
+            mostrarToast(res.message || 'Cliente eliminado con éxito.', 'success');
+            actualizarTabla();
+        } else {
+            mostrarToast(res.message || 'No se pudo eliminar el cliente.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        mostrarToast('Error crítico al intentar eliminar al cliente.', 'error');
+    });
 }
 
-// Procesar el guardado del cliente final
+// Procesar el envío del formulario (Creación o Edición)
 form.addEventListener('submit', function(e) {
     e.preventDefault();
 
-    // Verificación de seguridad en el frontend (Evita el error de tu captura de pantalla)
-    if (!inputPersona.value || inputPersona.value.trim() === '') {
-        mostrarToast('Debe buscar y asociar una persona obligatoriamente.', 'error');
-        return;
-    }
-
     const formData = new FormData(this);
 
-    fetch('help.php?action=crear_cliente', {
+    fetch(`help.php?action=${accionActual}`, {
         method: 'POST',
         body: formData
     })
@@ -110,17 +135,32 @@ form.addEventListener('submit', function(e) {
     })
     .then(res => {
         if (res.status === true || res.success === true) {
-            mostrarToast(res.message || 'Cliente registrado exitosamente.', 'success');
+            mostrarToast(res.message || 'Operación completada exitosamente.', 'success');
             cerrarModal();
-            
-            // Recarga sutil de sincronización de la tabla a los 1.5 segundos
-            setTimeout(() => location.reload(), 1500);
+            actualizarTabla();
         } else {
-            mostrarToast(res.message || 'No se pudo procesar la inscripción.', 'error');
+            mostrarToast(res.message || 'No se pudo procesar la solicitud.', 'error');
         }
     })
     .catch(error => {
         console.error('Fetch Error:', error);
-        mostrarToast('Error crítico al intentar guardar el cliente.', 'error');
+        mostrarToast('Error crítico al procesar el formulario del cliente.', 'error');
     });
 });
+
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-clientes-body');
+            const actualTbody = document.getElementById('tabla-clientes-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}

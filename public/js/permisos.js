@@ -1,13 +1,44 @@
 /**
- * Gestión Asíncrona de Permisos de Sistema
+ * Gestión Asíncrona de Permisos de Sistema - CRUD Completo
  * Autor: Alex Madrid
  */
 
 const modal = document.getElementById("modal-permiso");
 const form = document.getElementById("form-permiso");
+const modalTitulo = document.getElementById("modal-titulo");
+const btnGuardar = document.getElementById("btn-guardar");
+
+// Campos del formulario
+const inputIdPermiso = document.getElementById("input-id-permiso");
+const inputNombrePermiso = document.getElementById("input-permiso");
+const inputDescripcion = document.getElementById("input-descripcion");
+
+// Variable de control de acción activa externa
+let accionActual = "crear_permiso";
 
 function abrirModalCrear() {
   form.reset();
+  accionActual = "crear_permiso";
+  inputIdPermiso.value = "";
+  modalTitulo.textContent = "Registrar Nuevo Permiso";
+  btnGuardar.textContent = "Guardar Permiso";
+  
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function abrirModalEditar(id, nombre, descripcion) {
+  form.reset();
+  accionActual = "actualizar_permiso";
+  
+  // Poblar los inputs con la data actual de la fila
+  inputIdPermiso.value = id;
+  inputNombrePermiso.value = nombre;
+  inputDescripcion.value = descripcion;
+  
+  modalTitulo.textContent = "Editar Permiso Existente";
+  btnGuardar.textContent = "Actualizar Cambios";
+  
   modal.classList.remove("hidden");
   modal.classList.add("flex");
 }
@@ -56,7 +87,7 @@ form.addEventListener("submit", function (e) {
 
   const formData = new FormData(this);
 
-  fetch("help.php?action=crear_permiso", {
+  fetch(`help.php?action=${accionActual}`, {
     method: "POST",
     body: formData,
   })
@@ -66,20 +97,57 @@ form.addEventListener("submit", function (e) {
     })
     .then((res) => {
       // Evaluamos el estatus devuelto por la pasarela de permisosController
-      if (res.status === true) {
-        mostrarToast(res.message || "Permiso registrado exitosamente", "success");
+      if (res.status === true || res.success === true) {
+        const msg = accionActual === "crear_permiso" ? "Permiso registrado exitosamente." : "Permiso actualizado exitosamente.";
+        mostrarToast(res.message || msg, "success");
         cerrarModal();
-
-        // Espera de cortesía para que el operador logre apreciar la notificación antes del reload
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        actualizarTabla();
       } else {
-        // En caso de que se intente duplicar una clave string o falte un campo obligatorio
-        mostrarToast(res.message || "Error al procesar la solicitud", "error");
+        mostrarToast(res.message || res.error || "Error al procesar la solicitud", "error");
       }
     })
     .catch((err) => {
       mostrarToast(err.message, "error");
     });
 });
+
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-permisos-body');
+            const actualTbody = document.getElementById('tabla-permisos-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}
+
+function eliminarPermiso(idPermiso) {
+  if (confirm("¿Estás seguro de que deseas eliminar este permiso? Esto revocará este privilegio de todos los roles asociados de inmediato.")) {
+    const formData = new FormData();
+    formData.append("id_permiso", idPermiso);
+
+    fetch("help.php?action=eliminar_permiso", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((res) => {
+        if (res.status === true || res.success === true) {
+          mostrarToast(res.message || "Permiso eliminado exitosamente.", "success");
+          actualizarTabla();
+        } else {
+          mostrarToast(res.message || res.error || "No se pudo eliminar el permiso.", "error");
+        }
+      })
+      .catch((err) => {
+        mostrarToast("Error de conexión al intentar eliminar.", "error");
+      });
+  }
+}

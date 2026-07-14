@@ -126,4 +126,69 @@ class pagosController extends Controllers
 
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
+
+    public function eliminarPago(int $id)
+    {
+        if (empty($id) || $id <= 0) {
+            return $this->response(false, "El ID del pago es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarPago($id);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "El pago ha sido eliminado correctamente");
+    }
+
+    public function actualizarPago(
+        int $id_pago,
+        int $id_banco,
+        int $id_cliente,
+        int $id_plan,
+        int $id_estatus,
+        float $monto,
+        string $fecha_pago,
+        string $cod_referencia
+    ) {
+        $fecha_pago = trim($fecha_pago);
+        $cod_referencia = trim($cod_referencia);
+
+        if ($fecha_pago === '' || $cod_referencia === '') {
+            return $this->response(false, "Todos los campos son obligatorios para actualizar el pago");
+        }
+
+        if ($monto <= 0) {
+            return $this->response(false, "El monto del pago debe ser un valor mayor a cero");
+        }
+
+        $request = $this->model->actualizarPago(
+            $id_pago,
+            $id_banco,
+            $id_cliente,
+            $id_plan,
+            $id_estatus,
+            $monto,
+            $fecha_pago,
+            $cod_referencia
+        );
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message']);
+    }
+
+    public function listarPagosPorCliente(int $id_cliente)
+    {
+        $data = $this->model->listarPagosPorCliente($id_cliente);
+
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
+        }
+
+        return $this->response(true, "Historial de pagos obtenido exitosamente", $data);
+    }
 }

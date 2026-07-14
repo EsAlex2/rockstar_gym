@@ -176,6 +176,21 @@ class PersonasController extends Controllers
         // Corregido $request['success'] a un manejo dinámico o fallback seguro por consistencia
         return $this->response(true, $request['success'] ?? $request['message'] ?? "Datos actualizados correctamente", $request['data'] ?? null);
     }
+
+    public function eliminarPersona(int $id_persona)
+    {
+        if (empty($id_persona) || $id_persona <= 0) {
+            return $this->response(false, "El ID de la persona es obligatorio y debe ser válido");
+        }
+
+        $request = $this->personaModel->eliminarPersona($id_persona);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Persona eliminada correctamente");
+    }
 }
 
 // $personas = new PersonasController($pdo);

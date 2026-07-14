@@ -106,9 +106,24 @@ class horariosController extends Controllers
 
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
+
+    public function eliminarHorario(int $id_horario)
+    {
+        if (empty($id_horario) || $id_horario <= 0) {
+            return $this->response(false, "El ID del horario es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarHorario($id_horario);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Horario eliminado exitosamente");
+    }
 }
 
-$pruebas = new horariosController($pdo);
+// $pruebas = new horariosController($pdo);
 
 // $datos = ['id' => 1, 'hora_inicio' => '08:00:00', 'hora_fin' => '09:00:00'];
 

@@ -69,6 +69,36 @@ class permisosController extends Controllers
 
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
+
+    public function actualizarPermiso(int $id_permiso, string $nombre_permiso, string $descripcion)
+    {
+        if (empty($id_permiso) || empty(trim($nombre_permiso)) || empty(trim($descripcion))) {
+            return $this->response(false, "Todos los campos son obligatorios");
+        }
+
+        $request = $this->model->actualizarPermiso($id_permiso, $nombre_permiso, $descripcion);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Permiso actualizado exitosamente");
+    }
+
+    public function eliminarPermiso(int $id_permiso)
+    {
+        if (empty($id_permiso) || $id_permiso <= 0) {
+            return $this->response(false, "El ID del permiso es obligatorio y debe ser válido");
+        }
+
+        $request = $this->model->eliminarPermiso($id_permiso);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Permiso eliminado exitosamente");
+    }
 }
 
 // $pruebas = new permisosController($pdo);

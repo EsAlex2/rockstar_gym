@@ -50,9 +50,13 @@ require_once __DIR__ . '/help.php';
                                 Sistema</th>
                             <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado
                             </th>
+                            <?php if ($user_role === 'Root' || $user_role === 'Administrador'): ?>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">
+                                Acciones</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                    <tbody id="tabla-usuarios-body" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                         <?php if (!empty($listaUsuarios)): ?>
                             <?php foreach ($listaUsuarios as $usuario): ?>
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition-colors">
@@ -73,20 +77,40 @@ require_once __DIR__ . '/help.php';
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <?php if (strtoupper($usuario['estatus']) === 'ACTIVO'): ?>
-                                            <span
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" 
+                                                onchange="toggleEstatusUsuario(<?= $usuario['id_usuario'] ?>, this.checked)" 
+                                                <?= strtoupper($usuario['estatus']) === 'ACTIVO' ? 'checked' : '' ?>>
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                            <span class="ml-3 text-xs font-medium <?= strtoupper($usuario['estatus']) === 'ACTIVO' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' ?>">
                                                 <?= htmlspecialchars($usuario['estatus']) ?>
                                             </span>
-                                        <?php else: ?>
-                                            <span
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                <?= htmlspecialchars($usuario['estatus']) ?>
-                                            </span>
-                                        <?php endif; ?>
+                                        </label>
                                     </td>
+                                    <?php if ($user_role === 'Root' || $user_role === 'Administrador'): ?>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button onclick='abrirModalEditar(<?= json_encode($usuario) ?>)'
+                                                class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors cursor-pointer"
+                                                title="Editar Usuario">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                            <button onclick="eliminarUsuario(<?= $usuario['id_usuario'] ?>)"
+                                                class="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors cursor-pointer"
+                                                title="Eliminar Usuario">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -107,7 +131,7 @@ require_once __DIR__ . '/help.php';
                 class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 w-full max-w-lg overflow-hidden transform transition-all">
                 <div
                     class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/20">
-                    <h3 class="text-base font-bold text-gray-900 dark:text-white">Registrar Nuevo Usuario</h3>
+                    <h3 id="modal-titulo" class="text-base font-bold text-gray-900 dark:text-white">Registrar Nuevo Usuario</h3>
                     <button type="button" onclick="cerrarModal()"
                         class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 cursor-pointer">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,6 +145,7 @@ require_once __DIR__ . '/help.php';
                     class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none max-w-sm w-full"></div>
 
                 <form id="form-usuario" class="p-6 space-y-4">
+                    <input type="hidden" name="id_usuario" id="id_usuario">
                     <div>
                         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Asignar a
                             Persona *</label>
@@ -146,10 +171,10 @@ require_once __DIR__ . '/help.php';
                     </div>
 
                     <div>
-                        <label
+                        <label id="label-password"
                             class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Contraseña
                             por Defecto</label>
-                        <input type="text" name="password" value="Cliente2026*" readonly
+                        <input type="text" name="password" id="input-password" value="Cliente2026*" readonly
                             class="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed focus:outline-hidden">
                     </div>
 
@@ -165,6 +190,7 @@ require_once __DIR__ . '/help.php';
                                 <?php endforeach; endif; ?>
                         </select>
                     </div>
+
 
                     <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end space-x-3">
                         <button type="button" onclick="cerrarModal()"

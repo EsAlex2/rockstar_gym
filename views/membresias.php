@@ -52,7 +52,7 @@ require_once __DIR__ . '/help.php';
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                    <tbody id="tabla-membresias-body" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                         <?php if (!empty($listaMembresias)): ?>
                             <?php foreach ($listaMembresias as $membresia): ?>
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition-colors">

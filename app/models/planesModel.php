@@ -183,4 +183,29 @@ class planModel extends Model
             return ["error" => "Error al actualizar el plan: " . $e->getMessage()];
         }
     }
+
+    public function eliminarPlan(int $id_plan)
+    {
+        try {
+            if (!$this->pdo) {
+                return ["error" => "Error de conexión a la base de datos"];
+            }
+
+            $checkExist = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE id = :id");
+            $checkExist->bindParam(':id', $id_plan, PDO::PARAM_INT);
+            $checkExist->execute();
+
+            if ($checkExist->fetchColumn() == 0) {
+                return ["error" => "El plan que intenta eliminar no existe en la base de datos"];
+            }
+
+            $query = $this->pdo->prepare("DELETE FROM planes WHERE id = :id");
+            $query->bindParam(':id', $id_plan, PDO::PARAM_INT);
+            $query->execute();
+
+            return ["success" => true, "message" => "Plan eliminado exitosamente"];
+        } catch (PDOException $e) {
+            return ["error" => "Error al eliminar el plan: " . $e->getMessage()];
+        }
+    }
 }

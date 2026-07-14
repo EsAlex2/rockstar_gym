@@ -54,7 +54,7 @@ class LoginModel extends Model
     try {
         $sql = "SELECT p.nombre_permiso 
                 FROM permisos p
-                INNER JOIN rol_permiso rp ON p.id = rp.id_permiso
+                INNER JOIN roles_permisos rp ON p.id = rp.id_permiso
                 WHERE rp.id_rol = :id_rol";
         
         $stmt = $this->pdo->prepare($sql);

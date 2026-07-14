@@ -96,6 +96,6 @@ class entrenamientoHorarioController extends Controllers
     }
 }
 
-$pruebas = new entrenamientoHorarioController($pdo);
+// $pruebas = new entrenamientoHorarioController($pdo);
 
-echo $pruebas->listarEntrenamientoHorarios();
+// echo $pruebas->listarEntrenamientoHorarios();

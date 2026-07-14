@@ -29,9 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (res.status === true) {
             mostrarToast(res.message || "Membresía asignada con éxito.", "success");
             cerrarModal();
-            setTimeout(() => {
-              window.location.reload();
-            }, 1200);
+            actualizarTabla();
           } else {
             mostrarToast(res.message || "Ocurrió un error al procesar el plan.", "error");
           }
@@ -47,6 +45,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === modal) cerrarModal();
   });
 });
+
+// Actualizar tabla dinámicamente sin recargar la página
+function actualizarTabla() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.getElementById('tabla-membresias-body');
+            const actualTbody = document.getElementById('tabla-membresias-body');
+            
+            if (nuevoTbody && actualTbody) {
+                actualTbody.innerHTML = nuevoTbody.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error al actualizar la tabla:', error));
+}
 
 // Funciones globales vinculadas al onclick del botón HTML
 function abrirModalCrear() {
