@@ -16,7 +16,7 @@ error_reporting(E_ALL);
 define('BD_HOST', 'localhost');
 define('BD_NAME', 'rockstar');
 define('BD_USER', 'root');
-define('BD_PASS', '');
+define('BD_PASS', 'admin123');
 define('BD_PORT', '3306');
 define('BD', 'mysql');
 
