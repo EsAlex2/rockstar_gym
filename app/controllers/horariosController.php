@@ -1,26 +1,26 @@
-<?php 
-require_once __DIR__ . '/../controllers/controllers.php';
+<?php
 
-/* * horariosController.php
- * Autor: Alex Madrid
- * Fecha: 14/06/2026
+require_once __DIR__ . '/controllers.php';
+
+/**
+ * Class HorariosController
+ * Controlador para la gestión de horarios y turnos del gimnasio.
+ * Extiende de BaseController.
  */
-
-class horariosController extends Controllers
+class HorariosController extends BaseController
 {
-    private $model;
+    private HorariosModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        // Cargamos el modelo correspondiente
-        $this->model = $this->cargarModels('horariosModel');
+        $this->model = $this->cargarModels('HorariosModel');
     }
 
     /**
-     * Obtiene y lista todos los bloques horarios ordenados cronológicamente
+     * Obtiene y lista todos los bloques horarios ordenados.
      */
-    public function listarHorarios()
+    public function listarHorarios(): string
     {
         $data = $this->model->listarHorarios();
         
@@ -32,84 +32,83 @@ class horariosController extends Controllers
     }
 
     /**
-     * Busca la información de un bloque horario específico mediante su ID
+     * Busca un bloque horario por su ID.
      */
-    public function listarHorarioPorId(int $id_horario)
+    public function listarHorarioPorId(int $id_horario): string
     {
+        if ($id_horario <= 0) {
+            return $this->response(false, "El ID del horario debe ser válido.");
+        }
+
         $data = $this->model->buscarHorarioPorId($id_horario);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
 
-        // Estructuramos la respuesta mapeando los datos tal como lo haces en tu ejemplo
+        $row = $data['data'][0] ?? [];
         $response = [
-            "id" => $data['data'][0]['id'] ?? null,
-            "hora_inicio" => $data['data'][0]['hora_inicio'] ?? null,
-            "hora_fin" => $data['data'][0]['hora_fin'] ?? null,
-            "creado_en" => $data['data'][0]['creado_en'] ?? null,
-            "actualizado_en" => $data['data'][0]['actualizado_en'] ?? null
+            "id"             => $row['id'] ?? null,
+            "hora_inicio"    => $row['hora_inicio'] ?? null,
+            "hora_fin"       => $row['hora_fin'] ?? null,
+            "creado_en"      => $row['creado_en'] ?? null,
+            "actualizado_en" => $row['actualizado_en'] ?? null
         ];
 
         return $this->response(true, "Horario Encontrado con Exito", $response);
     }
 
     /**
-     * Registra un nuevo bloque horario validando los campos requeridos
+     * Registra un nuevo bloque horario.
      */
-    public function crearHorario(array $datos)
+    public function crearHorario(array $datos): string
     {
-        $camposObligatorios = ['hora_inicio', 'hora_fin'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        $validationError = $this->validateRequiredFields($datos, ['hora_inicio', 'hora_fin']);
+        if ($validationError !== null) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
         $hora_inicio = trim($datos['hora_inicio']);
-        $hora_fin = trim($datos['hora_fin']);
+        $hora_fin    = trim($datos['hora_fin']);
 
-        // Llamar al modelo para ejecutar la lógica de negocio y restricciones UNIQUE
         $request = $this->model->crearHorario($hora_inicio, $hora_fin);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Horario creado exitosamente", $request['data'] ?? null);
     }
 
     /**
-     * Actualiza un bloque horario existente validando su ID y coherencia de datos
+     * Actualiza un bloque horario existente.
      */
-    public function actualizarHorario(array $datos)
+    public function actualizarHorario(array $datos): string
     {
-        $camposObligatorios = ['id', 'hora_inicio', 'hora_fin'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        $validationError = $this->validateRequiredFields($datos, ['id', 'hora_inicio', 'hora_fin']);
+        if ($validationError !== null) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $id_horario = (int)$datos['id'];
+        $id_horario  = (int)$datos['id'];
         $hora_inicio = trim($datos['hora_inicio']);
-        $hora_fin = trim($datos['hora_fin']);
+        $hora_fin    = trim($datos['hora_fin']);
 
-        // Llamar al modelo para actualizar el registro
         $request = $this->model->actualizarHorario($id_horario, $hora_inicio, $hora_fin);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Horario actualizado exitosamente", $request['data'] ?? null);
     }
 
-    public function eliminarHorario(int $id_horario)
+    /**
+     * Elimina un bloque horario.
+     */
+    public function eliminarHorario(int $id_horario): string
     {
-        if (empty($id_horario) || $id_horario <= 0) {
+        if ($id_horario <= 0) {
             return $this->response(false, "El ID del horario es obligatorio y debe ser válido");
         }
 
@@ -122,9 +121,3 @@ class horariosController extends Controllers
         return $this->response(true, $request['message'] ?? "Horario eliminado exitosamente");
     }
 }
-
-// $pruebas = new horariosController($pdo);
-
-// $datos = ['id' => 1, 'hora_inicio' => '08:00:00', 'hora_fin' => '09:00:00'];
-
-// echo $pruebas->actualizarHorario($datos);

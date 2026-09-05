@@ -1,25 +1,26 @@
-<?php 
-require_once __DIR__ . '/../controllers/controllers.php';
+<?php
 
-/* * entrenamientoHorarioController.php
- * Controlador para la gestión de horarios de entrenamiento
+require_once __DIR__ . '/controllers.php';
+
+/**
+ * Class HorarioEntrenamientoController
+ * Controlador para la asignación y gestión de horarios en entrenamientos.
+ * Extiende de BaseController.
  */
-
-class entrenamientoHorarioController extends Controllers
+class HorarioEntrenamientoController extends BaseController
 {
-    private $model;
+    private HorarioEntrenamientoModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        // Cargamos el modelo correspondiente (siguiendo tu convención de nomenclatura)
-        $this->model = $this->cargarModels('entrenamientoHorariosModel');
+        $this->model = $this->cargarModels('HorarioEntrenamientoModel');
     }
 
     /**
-     * Listar todos los horarios asignados a los entrenamientos
+     * Listar todos los horarios asignados a los entrenamientos.
      */
-    public function listarEntrenamientoHorarios()
+    public function listarEntrenamientoHorarios(): string
     {
         $data = $this->model->listarEntrenamientosConHorarios();
         
@@ -31,71 +32,54 @@ class entrenamientoHorarioController extends Controllers
     }
 
     /**
-     * Asignar un horario y día a un entrenamiento
+     * Asignar un horario y día a un entrenamiento.
      */
-    public function asignarEntrenamientoHorario(array $datos)
+    public function asignarEntrenamientoHorario(array $datos): string
     {
-        // Validación de campos obligatorios según la estructura de la tabla
-        $camposObligatorios = ['id_entrenamiento', 'id_horario', 'dia_semana'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        $validationError = $this->validateRequiredFields($datos, ['id_entrenamiento', 'id_horario', 'dia_semana']);
+        if ($validationError !== null) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
         $id_entrenamiento = (int)$datos['id_entrenamiento'];
-        $id_horario = (int)$datos['id_horario'];
-        $dia_semana = trim($datos['dia_semana']);
+        $id_horario       = (int)$datos['id_horario'];
+        $dia_semana       = ucfirst(strtolower(trim($datos['dia_semana'])));
 
-        // Validar que el día de la semana sea válido según el CHECK de la base de datos
         $diasValidos = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
-        // Capitalizamos la primera letra por si viene en minúsculas
-        $dia_semana = ucfirst(strtolower($dia_semana)); 
 
         if (!in_array($dia_semana, $diasValidos)) {
             return $this->response(false, "El día de la semana no es válido. Debe ser un día entre Lunes y Domingo");
         }
 
-        // Llamar al modelo para insertar
         $request = $this->model->asignarHorarioEntrenamiento($id_entrenamiento, $id_horario, $dia_semana);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Horario asignado", $request['data'] ?? null);
     }
 
     /**
-     * Eliminar la asignación de un horario a un entrenamiento (ON DELETE CASCADE / RESTRICT)
+     * Eliminar la asignación de un horario a un entrenamiento.
      */
-    public function desasignarEntrenamientoHorario(array $datos)
+    public function desasignarEntrenamientoHorario(array $datos): string
     {
-        // Al ser una clave compuesta, necesitamos los 3 parámetros para eliminar la fila exacta
-        $camposObligatorios = ['id_entrenamiento', 'id_horario', 'dia_semana'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios para eliminar la asignación");
-            }
+        $validationError = $this->validateRequiredFields($datos, ['id_entrenamiento', 'id_horario', 'dia_semana']);
+        if ($validationError !== null) {
+            return $this->response(false, "Todos los campos son obligatorios para eliminar la asignación");
         }
 
         $id_entrenamiento = (int)$datos['id_entrenamiento'];
-        $id_horario = (int)$datos['id_horario'];
-        $dia_semana = trim($datos['dia_semana']);
+        $id_horario       = (int)$datos['id_horario'];
+        $dia_semana       = ucfirst(strtolower(trim($datos['dia_semana'])));
 
-        // Llamar al modelo para eliminar
         $request = $this->model->desasignarHorarioEntrenamiento($id_entrenamiento, $id_horario, $dia_semana);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Horario desvinculado exitosamente", $request['data'] ?? null);
     }
 }
-
-// $pruebas = new entrenamientoHorarioController($pdo);
-
-// echo $pruebas->listarEntrenamientoHorarios();

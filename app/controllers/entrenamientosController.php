@@ -1,26 +1,26 @@
-<?php 
-require_once __DIR__ . '/../controllers/controllers.php';
+<?php
 
-/* * entrenamientosController.php
- * Autor: Alex Madrid
- * Fecha: 14/06/2026
+require_once __DIR__ . '/controllers.php';
+
+/**
+ * Class EntrenamientosController
+ * Controlador para la gestión de clases, entrenamientos y asignación de clientes.
+ * Extiende de BaseController.
  */
-
-class EntrenamientosController extends Controllers
+class EntrenamientosController extends BaseController
 {
-    private $model;
+    private EntrenamientosModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        // Cargamos el modelo correspondiente a la gestión de entrenamientos o clases
         $this->model = $this->cargarModels('EntrenamientosModel');
     }
 
     /**
-     * Lista todos los entrenamientos registrados con la información cruzada de entrenadores y sedes.
+     * Lista todos los entrenamientos registrados.
      */
-    public function listarEntrenamientos()
+    public function listarEntrenamientos(): string
     {
         $data = $this->model->listarEntrenamientos();
         
@@ -31,15 +31,18 @@ class EntrenamientosController extends Controllers
         return $this->response(true, "Entrenamientos obtenidos exitosamente", $data);
     }
 
-    public function listarEntrenamientoPorNombre(string $nombre)
+    /**
+     * Busca entrenamientos por coincidencia de nombre.
+     */
+    public function listarEntrenamientoPorNombre(string $nombre): string
     {
-        $nombreEntrenamiento = trim($nombre);
+        $nombreLimpio = trim($nombre);
 
-        if(!isset($nombreEntrenamiento) || $nombreEntrenamiento === ''){
-            return $this->response(false, "Debe ingresar el nombre del entrenamiento para realizar la busqueda");
+        if ($nombreLimpio === '') {
+            return $this->response(false, "Debe ingresar el nombre del entrenamiento para realizar la búsqueda");
         }
 
-        $data = $this->model->listarEntrenamientosPorNombre($nombreEntrenamiento);
+        $data = $this->model->listarEntrenamientosPorNombre($nombreLimpio);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
@@ -49,68 +52,60 @@ class EntrenamientosController extends Controllers
     }
 
     /**
-     * Registra un nuevo entrenamiento o clase en el sistema.
-     * @param array $datos Debe contener ['id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion']
+     * Registra un nuevo entrenamiento.
      */
-    public function crearEntrenamientos(array $datos)
+    public function crearEntrenamientos(array $datos): string
     {
-        $camposObligatorios = ['id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion'];
-
-        // Validación de campos obligatorios
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim($datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        $validationError = $this->validateRequiredFields($datos, ['id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion']);
+        if ($validationError !== null) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
         $id_entrenador = (int)$datos['id_entrenador'];
-        $id_sede = (int)$datos['id_sede'];
-        $nombre = trim($datos['nombre_entrenamiento']);
-        $descripcion = trim($datos['descripcion']);
+        $id_sede       = (int)$datos['id_sede'];
+        $nombre        = trim($datos['nombre_entrenamiento']);
+        $descripcion   = trim($datos['descripcion']);
 
-        // Llamada al método de inserción del modelo
         $request = $this->model->crearEntrenamientos($id_entrenador, $id_sede, $nombre, $descripcion);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Entrenamiento creado con éxito", $request['data'] ?? null);
     }
 
     /**
-     * Actualiza los datos de un entrenamiento existente.
-     * @param array $datos Debe contener ['id', 'id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion']
+     * Actualiza un entrenamiento existente.
      */
-    public function actualizarEntrenamientos(array $datos)
+    public function actualizarEntrenamientos(array $datos): string
     {
-        $camposObligatorios = ['id', 'id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion'];
-
-        foreach ($camposObligatorios as $campo) {
-            if (!isset($datos[$campo]) || trim((string)$datos[$campo]) === '') {
-                return $this->response(false, "Todos los campos son obligatorios");
-            }
+        $validationError = $this->validateRequiredFields($datos, ['id', 'id_entrenador', 'id_sede', 'nombre_entrenamiento', 'descripcion']);
+        if ($validationError !== null) {
+            return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $id = (int)$datos['id'];
+        $id            = (int)$datos['id'];
         $id_entrenador = (int)$datos['id_entrenador'];
-        $id_sede = (int)$datos['id_sede'];
-        $nombre = trim($datos['nombre_entrenamiento']);
-        $descripcion = trim($datos['descripcion']);
+        $id_sede       = (int)$datos['id_sede'];
+        $nombre        = trim($datos['nombre_entrenamiento']);
+        $descripcion   = trim($datos['descripcion']);
 
-        // Llamada al método de actualización del modelo
         $request = $this->model->actualizarEntrenamiento($id, $id_entrenador, $id_sede, $nombre, $descripcion);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Entrenamiento actualizado con éxito", $request['data'] ?? null);
     }
 
-    public function eliminarEntrenamiento(int $id)
+    /**
+     * Elimina un entrenamiento por su ID.
+     */
+    public function eliminarEntrenamiento(int $id): string
     {
-        if (empty($id) || $id <= 0) {
+        if ($id <= 0) {
             return $this->response(false, "El ID del entrenamiento es obligatorio y debe ser válido");
         }
 
@@ -123,7 +118,10 @@ class EntrenamientosController extends Controllers
         return $this->response(true, $request['message'] ?? "Entrenamiento eliminado exitosamente");
     }
 
-    public function inscribirCliente(int $id_cliente, int $id_entrenamiento)
+    /**
+     * Inscribe a un cliente en un entrenamiento.
+     */
+    public function inscribirCliente(int $id_cliente, int $id_entrenamiento): string
     {
         if ($id_cliente <= 0 || $id_entrenamiento <= 0) {
             return $this->response(false, "El ID del cliente y del entrenamiento son obligatorios");
@@ -138,7 +136,10 @@ class EntrenamientosController extends Controllers
         return $this->response(true, $request['message'] ?? "Cliente inscrito exitosamente");
     }
 
-    public function desinscribirCliente(int $id_cliente, int $id_entrenamiento)
+    /**
+     * Desinscribe a un cliente de un entrenamiento.
+     */
+    public function desinscribirCliente(int $id_cliente, int $id_entrenamiento): string
     {
         if ($id_cliente <= 0 || $id_entrenamiento <= 0) {
             return $this->response(false, "El ID del cliente y del entrenamiento son obligatorios");
@@ -153,7 +154,10 @@ class EntrenamientosController extends Controllers
         return $this->response(true, $request['message'] ?? "Cliente desinscrito exitosamente");
     }
 
-    public function obtenerClienteEntrenamientos(int $id_cliente)
+    /**
+     * Obtiene los entrenamientos a los que un cliente está inscrito.
+     */
+    public function obtenerClienteEntrenamientos(int $id_cliente): string
     {
         if ($id_cliente <= 0) {
             return $this->response(false, "El ID del cliente es obligatorio");
@@ -168,7 +172,10 @@ class EntrenamientosController extends Controllers
         return $this->response(true, "Entrenamientos del cliente obtenidos exitosamente", $data);
     }
 
-    public function obtenerEntrenamientosDisponibles(int $id_cliente)
+    /**
+     * Obtiene los entrenamientos disponibles para que un cliente se inscriba.
+     */
+    public function obtenerEntrenamientosDisponibles(int $id_cliente): string
     {
         if ($id_cliente <= 0) {
             return $this->response(false, "El ID del cliente es obligatorio");
@@ -183,7 +190,10 @@ class EntrenamientosController extends Controllers
         return $this->response(true, "Entrenamientos disponibles obtenidos exitosamente", $data);
     }
 
-    public function obtenerTodosClienteEntrenamientos()
+    /**
+     * Obtiene el listado de todas las inscripciones del gimnasio.
+     */
+    public function obtenerTodosClienteEntrenamientos(): string
     {
         $data = $this->model->listarTodosClienteEntrenamientos();
 
@@ -194,11 +204,3 @@ class EntrenamientosController extends Controllers
         return $this->response(true, "Todas las inscripciones de entrenamientos obtenidas exitosamente", $data);
     }
 }
-
-// $pruebas = new EntrenamientosController($pdo);
-
-// $datos = ["id_entrenador" => 1, "id_sede" => 2, "nombre_entrenamiento" => "Entrenamiento 1", "descripcion" => "Entrenamiento de Prueba"];
-
-// echo $pruebas->crearEntrenamientos($datos);
-
-// echo $pruebas->listarEntrenamientoPorNombre("2do entrenamiento");

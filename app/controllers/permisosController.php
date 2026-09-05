@@ -1,25 +1,26 @@
-<?php 
-require_once __DIR__ . '/../controllers/controllers.php';
+<?php
 
-/* * permisosController.php
- * Autor: Alex Madrid
- * Fecha: 14/06/2026
+require_once __DIR__ . '/controllers.php';
+
+/**
+ * Class PermisosController
+ * Controlador para la gestión de permisos y privilegios del sistema.
+ * Extiende de BaseController.
  */
-
-class permisosController extends Controllers
+class PermisosController extends BaseController
 {
-    private $model;
+    private PermisosModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->model = $this->cargarModels('permisosModel');
+        $this->model = $this->cargarModels('PermisosModel');
     }
 
     /**
-     * Lista todos los permisos registrados en el sistema
+     * Lista todos los permisos del sistema.
      */
-    public function listarPermisos()
+    public function listarPermisos(): string
     {
         $data = $this->model->obtenerPermisos();
         
@@ -31,11 +32,16 @@ class permisosController extends Controllers
     }
 
     /**
-     * Busca la información de un permiso específico mediante su nombre único
+     * Busca un permiso por su nombre.
      */
-    public function listarPermisoPorNombre(string $nombre_permiso)
+    public function listarPermisoPorNombre(string $nombre_permiso): string
     {
-        $data = $this->model->obtenerPermisoPorNombre($nombre_permiso);
+        $nombreLimpio = trim($nombre_permiso);
+        if ($nombreLimpio === '') {
+            return $this->response(false, "El nombre del permiso es requerido.");
+        }
+
+        $data = $this->model->obtenerPermisoPorNombre($nombreLimpio);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
@@ -45,38 +51,43 @@ class permisosController extends Controllers
             "nombre_permiso" => $data['data']['nombre_permiso'] ?? null
         ];
 
-        return $this->response(true, "Permiso Encontrado con Exito", $response);
+        return $this->response(true, "Permiso Encontrado con Éxito", $response);
     }
 
     /**
-     * Crea un nuevo permiso en el sistema validando los campos obligatorios
+     * Registra un nuevo permiso en el catálogo.
      */
-    public function crearPermiso(string $permiso, string $desc)
+    public function crearPermiso(string $permiso, string $desc): string
     {
-            if (empty($permiso) || empty(trim($desc))) {
+        $nombreLimpio = trim($permiso);
+        $descLimpia   = trim($desc);
+
+        if ($nombreLimpio === '' || $descLimpia === '') {
             return $this->response(false, "Todos los campos son estrictamente obligatorios");
         }
-    
 
-        $nombre_permiso = trim($permiso);
-        $descripcion = isset($desc) ? trim($desc) : '';
-
-        $request = $this->model->crearPermiso($nombre_permiso, $descripcion);
+        $request = $this->model->crearPermiso($nombreLimpio, $descLimpia);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'], $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Permiso Creado", $request['data'] ?? null);
     }
 
-    public function actualizarPermiso(int $id_permiso, string $nombre_permiso, string $descripcion)
+    /**
+     * Actualiza un permiso existente.
+     */
+    public function actualizarPermiso(int $id_permiso, string $nombre_permiso, string $descripcion): string
     {
-        if (empty($id_permiso) || empty(trim($nombre_permiso)) || empty(trim($descripcion))) {
+        $nombreLimpio = trim($nombre_permiso);
+        $descLimpia   = trim($descripcion);
+
+        if ($id_permiso <= 0 || $nombreLimpio === '' || $descLimpia === '') {
             return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $request = $this->model->actualizarPermiso($id_permiso, $nombre_permiso, $descripcion);
+        $request = $this->model->actualizarPermiso($id_permiso, $nombreLimpio, $descLimpia);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
@@ -85,9 +96,12 @@ class permisosController extends Controllers
         return $this->response(true, $request['message'] ?? "Permiso actualizado exitosamente");
     }
 
-    public function eliminarPermiso(int $id_permiso)
+    /**
+     * Elimina un permiso del catálogo.
+     */
+    public function eliminarPermiso(int $id_permiso): string
     {
-        if (empty($id_permiso) || $id_permiso <= 0) {
+        if ($id_permiso <= 0) {
             return $this->response(false, "El ID del permiso es obligatorio y debe ser válido");
         }
 
@@ -100,9 +114,3 @@ class permisosController extends Controllers
         return $this->response(true, $request['message'] ?? "Permiso eliminado exitosamente");
     }
 }
-
-// $pruebas = new permisosController($pdo);
-
-// $datos = ["nombre_permiso" => "permiso n2", "descripcion" => "permiso de prueba"];
-
-// echo $pruebas->crearPermiso($datos);

@@ -1,84 +1,76 @@
 <?php
+
 require_once __DIR__ . '/models.php';
-require_once __DIR__ . '/../core/conn.php';
 
-/* =================================================================================
- * horariosModel.php
- * Modelo para la gestión de los horarios del gimnasio en el sistema de administración.
- * Autor: Alex Madrid
- * ==============================================================================
+/**
+ * Class HorariosModel
+ * Modelo para la gestión de bloques horarios del gimnasio.
+ * Extiende de BaseModel.
  */
-
-class horariosModel extends Model
+class HorariosModel extends BaseModel
 {
-    protected $pdo;
+    protected string $table = 'horarios';
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->pdo = $pdo;
     }
 
-    public function listarHorarios()
+    /**
+     * Lista todos los bloques horarios ordenados cronológicamente.
+     */
+    public function listarHorarios(): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            $stmt = $this->pdo->prepare("SELECT id, hora_inicio, hora_fin FROM horarios ORDER BY hora_inicio ASC");
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $sql = "SELECT id, hora_inicio, hora_fin FROM horarios ORDER BY hora_inicio ASC";
+            return $this->selectAll($sql);
         } catch (PDOException $e) {
-            return ["error" => "Error al obtener horarios: " . $e->getMessage()];
+            return $this->formatError("obtener horarios", $e);
         }
     }
 
-    public function crearHorario(string $hora_inicio, string $hora_fin)
+    /**
+     * Registra un nuevo bloque horario validando que hora inicio < hora fin.
+     */
+    public function crearHorario(string $hora_inicio, string $hora_fin): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
+            $inicio = trim($hora_inicio);
+            $fin    = trim($hora_fin);
 
-            if (strtotime($hora_inicio) >= strtotime($hora_fin)) {
+            if (strtotime($inicio) >= strtotime($fin)) {
                 return ["error" => "La hora de inicio no puede ser mayor o igual a la hora de fin"];
             }
 
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM horarios WHERE hora_inicio = :hora_inicio AND hora_fin = :hora_fin");
-            $checkDuplicate->bindParam(':hora_inicio', $hora_inicio, PDO::PARAM_STR);
-            $checkDuplicate->bindParam(':hora_fin', $hora_fin, PDO::PARAM_STR);
-            $checkDuplicate->execute();
-
-            if ($checkDuplicate->fetchColumn() > 0) {
+            if ($this->existsWhere('horarios', 'hora_inicio = :h_ini AND hora_fin = :h_fin', [':h_ini' => $inicio, ':h_fin' => $fin])) {
                 return ["error" => "Ya existe ese bloque horario registrado"];
             }
 
-            $query = $this->pdo->prepare("INSERT INTO horarios (hora_inicio, hora_fin) VALUES (:hora_inicio, :hora_fin)");
-            $query->bindParam(':hora_inicio', $hora_inicio, PDO::PARAM_STR);
-            $query->bindParam(':hora_fin', $hora_fin, PDO::PARAM_STR);
-            $query->execute();
+            $sql = "INSERT INTO horarios (hora_inicio, hora_fin) VALUES (:h_ini, :h_fin)";
+            $this->executeQuery($sql, [':h_ini' => $inicio, ':h_fin' => $fin]);
 
             return [
                 "success" => true,
-                "message" => "Horario creado exitosamente"
+                "message" => "Horario creado exitosamente",
+                "data"    => [
+                    "id_horario"  => (int)$this->pdo->lastInsertId(),
+                    "hora_inicio" => $inicio,
+                    "hora_fin"    => $fin
+                ]
             ];
         } catch (PDOException $e) {
-            return ["error" => "Error al crear horario: " . $e->getMessage()];
+            return $this->formatError("crear horario", $e);
         }
     }
 
-    public function buscarHorarioPorId(int $id_horario)
+    /**
+     * Busca un bloque horario por su ID.
+     */
+    public function buscarHorarioPorId(int $id_horario): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            $stmt = $this->pdo->prepare("SELECT id, hora_inicio, hora_fin, creado_en, actualizado_en FROM horarios WHERE id = :id");
-            $stmt->bindParam(':id', $id_horario, PDO::PARAM_INT);
-            $stmt->execute();
-            $res = $stmt->fetch(PDO::FETCH_ASSOC);
+            $sql = "SELECT id, hora_inicio, hora_fin, creado_en, actualizado_en FROM horarios WHERE id = :id LIMIT 1";
+            $res = $this->selectOne($sql, [':id' => $id_horario]);
 
             if (!$res) {
                 return ["error" => "No se encontró el horario"];
@@ -86,80 +78,65 @@ class horariosModel extends Model
 
             return [
                 "success" => true,
-                "data" => [$res]
+                "data"    => [$res]
             ];
         } catch (PDOException $e) {
-            return ["error" => "Error al buscar horario: " . $e->getMessage()];
+            return $this->formatError("buscar horario", $e);
         }
     }
 
-    public function actualizarHorario(int $id_horario, string $hora_inicio, string $hora_fin)
+    /**
+     * Actualiza un bloque horario existente.
+     */
+    public function actualizarHorario(int $id_horario, string $hora_inicio, string $hora_fin): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
+            $inicio = trim($hora_inicio);
+            $fin    = trim($hora_fin);
 
-            if (strtotime($hora_inicio) >= strtotime($hora_fin)) {
+            if (strtotime($inicio) >= strtotime($fin)) {
                 return ["error" => "La hora de inicio no puede ser mayor o igual a la hora de fin"];
             }
 
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM horarios WHERE hora_inicio = :hora_inicio AND hora_fin = :hora_fin AND id != :id");
-            $checkDuplicate->bindParam(':hora_inicio', $hora_inicio, PDO::PARAM_STR);
-            $checkDuplicate->bindParam(':hora_fin', $hora_fin, PDO::PARAM_STR);
-            $checkDuplicate->bindParam(':id', $id_horario, PDO::PARAM_INT);
-            $checkDuplicate->execute();
-
-            if ($checkDuplicate->fetchColumn() > 0) {
-                return ["error" => "No se pudo actualizar. Ya existe otro bloque horario de " . $hora_inicio . " a " . $hora_fin];
+            if ($this->existsWhere('horarios', 'hora_inicio = :h_ini AND hora_fin = :h_fin AND id != :id', [':h_ini' => $inicio, ':h_fin' => $fin, ':id' => $id_horario])) {
+                return ["error" => "No se pudo actualizar. Ya existe otro bloque horario de {$inicio} a {$fin}"];
             }
 
-            // 'CURRENT_TIMESTAMP' es plenamente compatible con MySQL/MariaDB
-            $query = $this->pdo->prepare("UPDATE horarios 
-                SET hora_inicio = :hora_inicio, hora_fin = :hora_fin, actualizado_en = CURRENT_TIMESTAMP 
-                WHERE id = :id");
-
-            $query->bindParam(':id', $id_horario, PDO::PARAM_INT);
-            $query->bindParam(':hora_inicio', $hora_inicio, PDO::PARAM_STR);
-            $query->bindParam(':hora_fin', $hora_fin, PDO::PARAM_STR);
-            $query->execute();
+            $sql = "UPDATE horarios SET hora_inicio = :h_ini, hora_fin = :h_fin, actualizado_en = NOW() WHERE id = :id";
+            $this->executeQuery($sql, [
+                ':h_ini' => $inicio,
+                ':h_fin' => $fin,
+                ':id'    => $id_horario
+            ]);
 
             return [
                 "success" => true,
                 "message" => "Horario actualizado exitosamente",
-                "data" => [
-                    "id_horario" => $id_horario,
-                    "hora_inicio" => $hora_inicio,
-                    "hora_fin" => $hora_fin
+                "data"    => [
+                    "id_horario"  => $id_horario,
+                    "hora_inicio" => $inicio,
+                    "hora_fin"    => $fin
                 ]
             ];
         } catch (PDOException $e) {
-            return ["error" => "Error al actualizar horario: " . $e->getMessage()];
+            return $this->formatError("actualizar horario", $e);
         }
     }
 
-    public function eliminarHorario(int $id_horario)
+    /**
+     * Elimina un bloque horario.
+     */
+    public function eliminarHorario(int $id_horario): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM horarios WHERE id = :id");
-            $checkStmt->bindParam(':id', $id_horario, PDO::PARAM_INT);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() == 0) {
+            if (!$this->existsWhere('horarios', 'id = :id', [':id' => $id_horario])) {
                 return ["error" => "No se encontró el horario especificado en la base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("DELETE FROM horarios WHERE id = :id");
-            $stmt->bindParam(':id', $id_horario, PDO::PARAM_INT);
-            $stmt->execute();
-
+            $this->executeQuery("DELETE FROM horarios WHERE id = :id", [':id' => $id_horario]);
             return ["success" => true, "message" => "Horario eliminado exitosamente"];
         } catch (PDOException $e) {
-            return ["error" => "Error al eliminar el horario: " . $e->getMessage()];
+            return $this->formatError("eliminar el horario", $e);
         }
     }
 }

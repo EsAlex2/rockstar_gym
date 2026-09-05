@@ -4,7 +4,17 @@ $user_role = $_SESSION['user_role'] ?? 'Invitado';
 $user_fullname = $_SESSION['user_fullname'] ?? 'Usuario';
 
 $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
+
+$currentPage = basename($_SERVER['PHP_SELF'] ?? '');
+
+$getNavClass = function($page) use ($currentPage) {
+    if ($currentPage === $page) {
+        return 'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl bg-orange-500 text-white shadow-lg shadow-orange-500/10 transition-all';
+    }
+    return 'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all';
+};
 ?>
+
 
 <aside id="sidebar"
     class="w-64 min-h-screen bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col justify-between transition-all duration-300 ease-in-out relative group">
@@ -30,7 +40,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
         <nav class="space-y-1">
             <?php if(in_array($user_role, $roles)): ?>
                 <a href="home.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl bg-orange-500 text-white shadow-lg shadow-orange-500/10">
+                    class="<?= $getNavClass('home.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -42,8 +52,8 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                         
             <?php if(in_array($user_role, [$roles[0], $roles[1], $roles[2]])): ?>
                 <a href="clientes.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
-                    <svg xmlns="http://www.w3.org/2000/xl" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    class="<?= $getNavClass('clientes.php') ?>">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -54,7 +64,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 
             <?php if(in_array($user_role, [$roles[0], $roles[1], $roles[3]])): ?>
                 <a href="entrenadores.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('entrenadores.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -66,7 +76,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 
             <?php if(in_array($user_role, [$roles[0], $roles[1], $roles[3]])): ?>
                 <a href="pagos.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('pagos.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -78,7 +88,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 
             <?php if(in_array($user_role, $roles)): ?>
                 <a href="entrenamientos.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('entrenamientos.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -90,7 +100,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
 
             <?php if(in_array($user_role, $roles)): ?>
                 <a href="horarios.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('horarios.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -100,9 +110,19 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                 </a>
             <?php endif; ?>
 
-            <?php if($user_role === $roles[0]): ?>
+            <?php if(in_array($user_role, [$roles[0], $roles[1]])): ?>
+                <a href="personas.php"
+                    class="<?= $getNavClass('personas.php') ?>">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5 flex-shrink-0">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15A2.25 2.25 0 0 0 2.25 6.75v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.169.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.337 0Z" />
+                    </svg>
+                    <span class="sidebar-text transition-opacity duration-200">Personas</span>
+                </a>
+
                 <a href="usuarios.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('usuarios.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -110,9 +130,11 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                     </svg>
                     <span class="sidebar-text transition-opacity duration-200">Gestion Usuarios</span>
                 </a>
+            <?php endif; ?>
 
+            <?php if($user_role === $roles[0]): ?>
                 <a href="roles.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('roles.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -122,7 +144,7 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                 </a>
 
                 <a href="permisos.php"
-                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                    class="<?= $getNavClass('permisos.php') ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5 flex-shrink-0">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -130,12 +152,32 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
                     </svg>
                     <span class="sidebar-text transition-opacity duration-200">Gestión de Permisos</span>
                 </a>
-                </a>
             <?php endif; ?>
         </nav>
     </div>
 
     <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-x-hidden">
+        
+        <!-- BOTÓN CAMBIO DE TEMA CLARO / OSCURO -->
+        <button id="sidebar-theme-toggle" type="button"
+            class="w-full flex items-center justify-between p-2 mb-3 rounded-xl bg-gray-200/80 dark:bg-gray-700/60 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-all duration-200 cursor-pointer text-xs font-medium focus:outline-hidden"
+            title="Alternar modo claro / oscuro">
+            <div class="flex items-center gap-2.5 truncate">
+                <div class="p-1 rounded-lg bg-white dark:bg-gray-800 text-amber-500 dark:text-amber-400 shadow-xs flex items-center justify-center shrink-0">
+                    <svg id="sidebar-theme-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <svg id="sidebar-theme-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </div>
+                <span id="sidebar-theme-text" class="sidebar-text font-semibold transition-opacity duration-200">Modo Oscuro</span>
+            </div>
+            <div class="sidebar-text relative w-8 h-4 bg-gray-300 dark:bg-orange-500 rounded-full transition-colors duration-200 shrink-0 p-0.5 flex items-center">
+                <div class="w-3 h-3 bg-white rounded-full transition-transform duration-200 shadow-xs translate-x-0 dark:translate-x-4"></div>
+            </div>
+        </button>
+
         <div class="sidebar-text flex items-center justify-between mb-2 transition-opacity duration-200">
             <div class="truncate">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate"><?= htmlspecialchars($user_role) ?></p>
@@ -188,5 +230,42 @@ $roles = ['Root', 'Administrador', 'Entrenador', 'Cliente'];
             localStorage.setItem('sidebar-collapsed', isCollapsed);
             setSidebarState(isCollapsed);
         });
+
+        // =========================================================================
+        // MANEJO DE MODO CLARO / OSCURO EN EL SIDEBAR
+        // =========================================================================
+        const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
+        const sunIcon = document.getElementById('sidebar-theme-sun');
+        const moonIcon = document.getElementById('sidebar-theme-moon');
+        const themeText = document.getElementById('sidebar-theme-text');
+
+        const updateThemeUI = () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+                if (sunIcon) sunIcon.classList.add('hidden');
+                if (moonIcon) moonIcon.classList.remove('hidden');
+                if (themeText) themeText.textContent = 'Modo Oscuro';
+            } else {
+                if (moonIcon) moonIcon.classList.add('hidden');
+                if (sunIcon) sunIcon.classList.remove('hidden');
+                if (themeText) themeText.textContent = 'Modo Claro';
+            }
+        };
+
+        updateThemeUI();
+
+        if (sidebarThemeToggle) {
+            sidebarThemeToggle.addEventListener('click', () => {
+                const isCurrentlyDark = document.documentElement.classList.contains('dark');
+                if (isCurrentlyDark) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+                updateThemeUI();
+            });
+        }
     });
 </script>

@@ -1,69 +1,112 @@
 <?php
 
 require_once __DIR__ . '/models.php';
-require_once __DIR__ . '/../core/conn.php'; 
 
-/* =================================================================================
- * LoginModel.php
- * Modelo dedicado exclusivamente a la verificación de identidad y credenciales de acceso.
- * Autor: Alex Madrid (Refactorizado)
- * ==============================================================================
+/**
+ * Class LoginModel
+ * Modelo especializado en la autenticación, resolución de identidad y consulta de permisos de sesión.
+ * Extiende de BaseModel.
  */
-
-class LoginModel extends Model
+class LoginModel extends BaseModel
 {
-    protected $pdo;
+    protected string $table = 'usuarios';
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->pdo = $pdo;
     }
 
     /**
-     * Busca un usuario activo por su username o por su correo electrónico.
+     * Busca todos los candidatos de usuario que coincidan con la identidad proporcionada:
+     * correo electrónico, prefijo de usuario, cédula de identidad (numérica o con formato) o alias de rol.
+     * Incluye el estatus de la cuenta para que el controlador pueda validar e informar al usuario.
+     *
+     * @param string $identidad
+     * @return array
      */
-    public function buscarPorIdentidad(string $identidad)
+    public function buscarCandidatosPorIdentidad(string $identidad): array
     {
         try {
-            if (!$this->pdo) {
-                return false;
+            $idTrim = trim($identidad);
+            if ($idTrim === '') {
+                return [];
             }
 
-            // Removidos los prefijos 'administracion.' de todas las tablas e id_estatus subquery
-            $sql = "SELECT u.*, 
-                           p.primer_nombre, p.primer_apellido, p.cedula_identidad,
-                           r.nombre_rol
+            $cedulaDigits = preg_replace('/[^0-9]/', '', $idTrim);
+
+            $sql = "SELECT 
+                        u.*, 
+                        p.primer_nombre, 
+                        p.primer_apellido, 
+                        p.cedula_identidad,
+                        r.nombre_rol,
+                        COALESCE(e.nombre_estatus, 'Activo') AS nombre_estatus
                     FROM usuarios u
                     INNER JOIN personas p ON u.id_persona = p.id
                     INNER JOIN roles r ON u.id_rol = r.id
-                    WHERE (u.email_user = :identidad) 
-                      AND u.id_estatus = (SELECT id FROM estatus WHERE nombre_estatus = 'Activo' LIMIT 1)
-                    LIMIT 1";
-            
+                    LEFT JOIN estatus e ON u.id_estatus = e.id
+                    WHERE (
+                        LOWER(u.email_user) = LOWER(:id1)
+                        OR LOWER(SUBSTRING_INDEX(u.email_user, '@', 1)) = LOWER(:id2)
+                        OR p.cedula_identidad = :id3
+                        " . ($cedulaDigits !== '' ? "OR p.cedula_identidad = :id_cedula " : "") . "
+                        OR (LOWER(:id4) = 'root' AND LOWER(r.nombre_rol) = 'root')
+                        OR (LOWER(:id5) = 'admin' AND LOWER(r.nombre_rol) IN ('root', 'administrador'))
+                    )
+                    ORDER BY (CASE WHEN u.id_estatus = 1 THEN 0 ELSE 1 END), u.id ASC";
+
+            $params = [
+                ':id1' => $idTrim,
+                ':id2' => $idTrim,
+                ':id3' => $idTrim,
+                ':id4' => $idTrim,
+                ':id5' => $idTrim,
+            ];
+            if ($cedulaDigits !== '') {
+                $params[':id_cedula'] = $cedulaDigits;
+            }
+
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(['identidad' => trim($identidad)]);
-            
-            return $stmt->fetch(PDO::FETCH_ASSOC); 
+            $stmt->execute($params);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
-            return false;
+            return [];
         }
     }
 
-    public function obtenerPermisosPorRol(int $id_rol) {
-    try {
-        $sql = "SELECT p.nombre_permiso 
-                FROM permisos p
-                INNER JOIN roles_permisos rp ON p.id = rp.id_permiso
-                WHERE rp.id_rol = :id_rol";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['id_rol' => $id_rol]);
-        
-        // Retorna un array plano de strings (ej: ['usuarios.crear', 'pagos.verificar'])
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
-    } catch (PDOException $e) {
-        return [];
+    /**
+     * Busca un usuario por su identidad. Devuelve el primer candidato coincidente o false.
+     * Mantiene retrocompatibilidad con invocaciones directas.
+     *
+     * @param string $identidad
+     * @return array|false
+     */
+    public function buscarPorIdentidad(string $identidad): array|false
+    {
+        $candidatos = $this->buscarCandidatosPorIdentidad($identidad);
+        return !empty($candidatos) ? $candidatos[0] : false;
     }
-}
+
+    /**
+     * Obtiene el listado plano de permisos asignados al rol del usuario.
+     * @param int $id_rol
+     * @return array
+     */
+    public function obtenerPermisosPorRol(int $id_rol): array
+    {
+        try {
+            $sql = "SELECT p.nombre_permiso 
+                    FROM permisos p
+                    INNER JOIN roles_permisos rp ON p.id = rp.id_permiso
+                    WHERE rp.id_rol = :id_rol";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':id_rol' => $id_rol]);
+
+            return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
 }

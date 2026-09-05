@@ -1,27 +1,26 @@
 <?php
 
-require_once __DIR__ . '/../controllers/controllers.php';
+require_once __DIR__ . '/controllers.php';
 
-/* * usuariosController.php
- * Controlador para gestionar el flujo de datos del módulo de usuarios.
- * Autor: Alex Madrid (Adaptación)
- * Fecha: 16/06/2026
+/**
+ * Class UsuariosController
+ * Controlador para la gestión de usuarios, credenciales y perfiles de acceso.
+ * Extiende de BaseController.
  */
-
-class UsuariosController extends Controllers
+class UsuariosController extends BaseController
 {
-    private $usuarioModel;
+    private UsuariosModel $usuarioModel;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->usuarioModel = $this->cargarModels('usuariosModel');
+        $this->usuarioModel = $this->cargarModels('UsuariosModel');
     }
 
     /**
-     * Lista todos los usuarios del sistema
+     * Lista todos los usuarios registrados.
      */
-    public function listarUsuarios()
+    public function listarUsuarios(): string
     {
         $data = $this->usuarioModel->obtenerUsuarios();
 
@@ -33,34 +32,27 @@ class UsuariosController extends Controllers
     }
 
     /**
-     * Procesa el registro de un nuevo usuario
+     * Procesa la creación de un nuevo usuario con contraseña por defecto o personalizada.
      */
-    public function crearNuevoUsuario(int $id_persona, string $usuario, int $id_rol)
+    public function crearNuevoUsuario(int $id_persona, string $usuario, int $id_rol, string $password = "Cliente2026*"): string
     {   
-        $password = "Cliente2026*";
-        // Validación de campos requeridos
-        if (empty($id_persona) || empty(trim($usuario)) || empty(trim($password)) || empty($id_rol)) {
+        if ($id_persona <= 0 || empty(trim($usuario)) || empty(trim($password)) || $id_rol <= 0) {
             return $this->response(false, "Todos los campos son estrictamente obligatorios");
         }
 
-        // Sanitización básica del username
-        $user_trim = strtolower(trim($usuario));
-
-        if (!filter_var($user_trim, FILTER_VALIDATE_EMAIL)) {
+        $cleanEmail = $this->validateAndSanitizeEmail($usuario);
+        if ($cleanEmail === null) {
             return $this->response(false, "El formato del correo electrónico no es válido");
         }
         
         if (strlen($password) < 8) {
             return $this->response(false, "La contraseña debe tener al menos 8 caracteres");
         }
-        
-        $passGenerico = $password;
 
-        // Ejecución en el modelo
         $request = $this->usuarioModel->crearUsuario(
             $id_persona,
-            $user_trim,
-            $passGenerico,
+            $cleanEmail,
+            $password,
             $id_rol
         );
 
@@ -71,15 +63,25 @@ class UsuariosController extends Controllers
         return $this->response(true, $request['message'] ?? "Usuario registrado exitosamente");
     }
 
-    public function actualizarUsuarios(int $id_usuario, int $id_estatus, int $id_rol, string $username, string $email, string $password = '')
+    /**
+     * Alias de creación de usuario para pasarelas y formularios.
+     */
+    public function crearUsuario(int $id_persona, int $id_rol, string $email): string
     {
-        if (empty($id_usuario) || empty($id_estatus) || empty($id_rol) || empty(trim($email))) {
+        return $this->crearNuevoUsuario($id_persona, $email, $id_rol);
+    }
+
+    /**
+     * Actualiza la información de un usuario.
+     */
+    public function actualizarUsuarios(int $id_usuario, int $id_estatus, int $id_rol, string $username, string $email, string $password = ''): string
+    {
+        if ($id_usuario <= 0 || $id_estatus <= 0 || $id_rol <= 0 || empty(trim($email))) {
             return $this->response(false, "Todos los campos son estrictamente obligatorios");
         }
 
-        $email_trim = strtolower(trim($email));
-
-        if (!filter_var($email_trim, FILTER_VALIDATE_EMAIL)) {
+        $cleanEmail = $this->validateAndSanitizeEmail($email);
+        if ($cleanEmail === null) {
             return $this->response(false, "El formato del correo electrónico no es válido");
         }
 
@@ -87,7 +89,7 @@ class UsuariosController extends Controllers
             return $this->response(false, "La nueva contraseña debe tener al menos 8 caracteres");
         }
 
-        $request = $this->usuarioModel->actualizarUsuario($id_usuario, $id_estatus, $id_rol, $email_trim, $password);
+        $request = $this->usuarioModel->actualizarUsuario($id_usuario, $id_estatus, $id_rol, $cleanEmail, $password);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
@@ -96,9 +98,13 @@ class UsuariosController extends Controllers
         return $this->response(true, $request['message'] ?? "Usuario actualizado exitosamente");
     }
 
-    public function cambiarContraseña(string $username, string $email, string $password)
+    /**
+     * Cambia la contraseña de un usuario mediante su correo electrónico.
+     */
+    public function cambiarContraseña(string $username, string $email, string $password): string
     {
-        if (empty(trim($email)) || empty(trim($password))) {
+        $cleanEmail = $this->validateAndSanitizeEmail($email);
+        if ($cleanEmail === null || empty(trim($password))) {
             return $this->response(false, "Todos los campos son estrictamente obligatorios");
         }
 
@@ -106,7 +112,7 @@ class UsuariosController extends Controllers
             return $this->response(false, "La contraseña debe tener al menos 8 caracteres");
         }
 
-        $request = $this->usuarioModel->cambiarPassword(trim($email), $password);
+        $request = $this->usuarioModel->cambiarPassword($cleanEmail, $password);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
@@ -115,9 +121,12 @@ class UsuariosController extends Controllers
         return $this->response(true, $request['message'] ?? "Contraseña actualizada exitosamente");
     }
 
-    public function eliminarUsuario(int $id_usuario)
+    /**
+     * Elimina el registro de un usuario.
+     */
+    public function eliminarUsuario(int $id_usuario): string
     {
-        if (empty($id_usuario) || $id_usuario <= 0) {
+        if ($id_usuario <= 0) {
             return $this->response(false, "El ID del usuario es obligatorio y debe ser válido");
         }
 
@@ -130,9 +139,12 @@ class UsuariosController extends Controllers
         return $this->response(true, $request['message'] ?? "Usuario eliminado correctamente");
     }
 
-    public function cambiarEstatusUsuario(int $id_usuario, int $nuevo_estatus)
+    /**
+     * Cambia el estatus (Activo/Inactivo) de un usuario.
+     */
+    public function cambiarEstatusUsuario(int $id_usuario, int $nuevo_estatus): string
     {
-        if (empty($id_usuario) || $id_usuario <= 0 || empty($nuevo_estatus) || $nuevo_estatus <= 0) {
+        if ($id_usuario <= 0 || $nuevo_estatus <= 0) {
             return $this->response(false, "El ID del usuario y el estatus son obligatorios");
         }
 
@@ -145,7 +157,3 @@ class UsuariosController extends Controllers
         return $this->response(true, $request['message'] ?? "Estado del usuario actualizado correctamente");
     }
 }
-
-// $pruebas = new UsuariosController($pdo);
-
-// echo $pruebas->crearNuevoUsuario(1, "alexmadrid326@gmail.com", 1);

@@ -1,26 +1,26 @@
 <?php
-require_once __DIR__ . '/../controllers/controllers.php';
 
-/* * pagosController.php
- * Autor: Alex Madrid
- * Fecha: 14/06/2026
+require_once __DIR__ . '/controllers.php';
+
+/**
+ * Class PagosController
+ * Controlador para la gestión de transacciones de pago, auditoría y membresías.
+ * Extiende de BaseController.
  */
-
-class pagosController extends Controllers
+class PagosController extends BaseController
 {
-    private $model;
+    private PagosModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        // Cargamos el modelo correspondiente
-        $this->model = $this->cargarModels('pagosModel');
+        $this->model = $this->cargarModels('PagosModel');
     }
 
     /**
-     * Lista todos los movimientos de pago registrados en el sistema
+     * Lista todos los pagos registrados.
      */
-    public function listarPagos()
+    public function listarPagos(): string
     {
         $data = $this->model->listarPagos();
 
@@ -32,37 +32,41 @@ class pagosController extends Controllers
     }
 
     /**
-     * Busca un registro de pago específico mediante su ID
+     * Busca un pago específico por su ID.
      */
-    public function buscarPagoPorId(int $id_pago)
+    public function buscarPagoPorId(int $id_pago): string
     {
+        if ($id_pago <= 0) {
+            return $this->response(false, "El ID del pago debe ser válido.");
+        }
+
         $data = $this->model->buscarPagoPorId($id_pago);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
 
-        // Mapeo estructurado siguiendo la consistencia de tus respuestas previas
+        $row = $data['data'][0] ?? [];
         $response = [
-            "id" => $data['data'][0]['id'] ?? null,
-            "id_banco" => $data['data'][0]['id_banco'] ?? null,
-            "nombre_banco" => $data['data'][0]['nombre_banco'] ?? null,
-            "id_cliente" => $data['data'][0]['id_cliente'] ?? null,
-            "id_cliente_plan" => $data['data'][0]['id_cliente_plan'] ?? null,
-            "id_user" => $data['data'][0]['id_user'] ?? null,
-            "id_estatus" => $data['data'][0]['id_estatus'] ?? null,
-            "nombre_estatus" => $data['data'][0]['nombre_estatus'] ?? null,
-            "monto" => $data['data'][0]['monto'] ?? null,
-            "fecha_pago" => $data['data'][0]['fecha_pago'] ?? null,
-            "cod_referencia" => $data['data'][0]['cod_referencia'] ?? null,
-            "creado_en" => $data['data'][0]['creado_en'] ?? null
+            "id"              => $row['id'] ?? null,
+            "id_banco"        => $row['id_banco'] ?? null,
+            "nombre_banco"    => $row['nombre_banco'] ?? null,
+            "id_cliente"      => $row['id_cliente'] ?? null,
+            "id_cliente_plan" => $row['id_cliente_plan'] ?? null,
+            "id_user"         => $row['id_user'] ?? null,
+            "id_estatus"      => $row['id_estatus'] ?? null,
+            "nombre_estatus"  => $row['nombre_estatus'] ?? null,
+            "monto"           => $row['monto'] ?? null,
+            "fecha_pago"      => $row['fecha_pago'] ?? null,
+            "cod_referencia"  => $row['cod_referencia'] ?? null,
+            "creado_en"       => $row['creado_en'] ?? null
         ];
 
         return $this->response(true, "Pago localizado con éxito", $response);
     }
 
     /**
-     * Registra un nuevo pago validando la presencia obligatoria de todos sus campos
+     * Registra un nuevo pago en el sistema.
      */
     public function registrarPago(
         int $id_banco,
@@ -73,22 +77,18 @@ class pagosController extends Controllers
         float $monto,
         string $fecha_pago,
         string $cod_referencia
-    ) {
-        // Sanitización de los strings
-        $fecha_pago = trim($fecha_pago);
-        $cod_referencia = trim($cod_referencia);
+    ): string {
+        $fechaLimpia = trim($fecha_pago);
+        $refLimpia   = trim($cod_referencia);
 
-        // Verificación de campos obligatorios (para los strings que no deben venir vacíos)
-        if ($fecha_pago === '' || $cod_referencia === '') {
+        if ($fechaLimpia === '' || $refLimpia === '') {
             return $this->response(false, "Todos los campos son obligatorios para registrar el pago");
         }
 
-        // Validación adicional del monto
         if ($monto <= 0) {
             return $this->response(false, "El monto del pago debe ser un valor mayor a cero");
         }
 
-        // Llamar al método seguro del modelo
         $request = $this->model->registrarPago(
             $id_banco,
             $id_cliente,
@@ -96,8 +96,8 @@ class pagosController extends Controllers
             $id_user,
             $id_estatus,
             $monto,
-            $fecha_pago,
-            $cod_referencia
+            $fechaLimpia,
+            $refLimpia
         );
 
         if (isset($request['error'])) {
@@ -108,16 +108,14 @@ class pagosController extends Controllers
     }
 
     /**
-     * Modifica el estado del pago para flujos de aprobación o rechazo
+     * Cambia el estatus de un pago (Aprobado, Rechazado, Pendiente).
      */
-    public function cambiarEstatusPago(int $id, int $id_estatus)
+    public function cambiarEstatusPago(int $id, int $id_estatus): string
     {
-        // Validación opcional: Asegurar que los IDs sean mayores a cero
         if ($id <= 0 || $id_estatus <= 0) {
             return $this->response(false, "El ID del pago y el nuevo estatus deben ser valores válidos");
         }
 
-        // Enviar la solicitud de cambio de estado al modelo
         $request = $this->model->cambiarEstatusPago($id, $id_estatus);
 
         if (isset($request['error'])) {
@@ -127,9 +125,12 @@ class pagosController extends Controllers
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
 
-    public function eliminarPago(int $id)
+    /**
+     * Elimina el registro de un pago.
+     */
+    public function eliminarPago(int $id): string
     {
-        if (empty($id) || $id <= 0) {
+        if ($id <= 0) {
             return $this->response(false, "El ID del pago es obligatorio y debe ser válido");
         }
 
@@ -142,6 +143,9 @@ class pagosController extends Controllers
         return $this->response(true, $request['message'] ?? "El pago ha sido eliminado correctamente");
     }
 
+    /**
+     * Actualiza un pago existente.
+     */
     public function actualizarPago(
         int $id_pago,
         int $id_banco,
@@ -151,11 +155,11 @@ class pagosController extends Controllers
         float $monto,
         string $fecha_pago,
         string $cod_referencia
-    ) {
-        $fecha_pago = trim($fecha_pago);
-        $cod_referencia = trim($cod_referencia);
+    ): string {
+        $fechaLimpia = trim($fecha_pago);
+        $refLimpia   = trim($cod_referencia);
 
-        if ($fecha_pago === '' || $cod_referencia === '') {
+        if ($fechaLimpia === '' || $refLimpia === '') {
             return $this->response(false, "Todos los campos son obligatorios para actualizar el pago");
         }
 
@@ -170,8 +174,8 @@ class pagosController extends Controllers
             $id_plan,
             $id_estatus,
             $monto,
-            $fecha_pago,
-            $cod_referencia
+            $fechaLimpia,
+            $refLimpia
         );
 
         if (isset($request['error'])) {
@@ -181,8 +185,15 @@ class pagosController extends Controllers
         return $this->response(true, $request['message']);
     }
 
-    public function listarPagosPorCliente(int $id_cliente)
+    /**
+     * Obtiene los pagos realizados por un cliente específico.
+     */
+    public function listarPagosPorCliente(int $id_cliente): string
     {
+        if ($id_cliente <= 0) {
+            return $this->response(false, "El ID del cliente debe ser válido.");
+        }
+
         $data = $this->model->listarPagosPorCliente($id_cliente);
 
         if (isset($data['error'])) {

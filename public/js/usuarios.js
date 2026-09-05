@@ -232,3 +232,19 @@ function toggleEstatusUsuario(id_usuario, isChecked) {
         actualizarTabla();
     });
 }
+
+// Si se accede con ?persona_id=X, abrir modal de crear y preseleccionar la persona
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedPersonaId = urlParams.get('persona_id');
+    if (preselectedPersonaId) {
+        setTimeout(() => {
+            abrirModalCrear();
+            const selectPersona = document.getElementById('select-persona');
+            if (selectPersona) {
+                selectPersona.value = preselectedPersonaId;
+                selectPersona.dispatchEvent(new Event('change'));
+            }
+        }, 150);
+    }
+});

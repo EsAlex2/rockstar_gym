@@ -1,35 +1,33 @@
 <?php
 
-require_once __DIR__ . '/../controllers/controllers.php';
+require_once __DIR__ . '/controllers.php';
 
-/* * loginController.php
- * Controlador encargado de procesar las intenciones de inicio y cierre de sesión.
- * Autor: Alex Madrid (Refactorizado)
- * Fecha: 16/06/2026
+/**
+ * Class LoginController
+ * Controlador para la autenticación, inicio de sesión seguro y cierre de sesiones.
+ * Extiende de BaseController.
  */
-
-class LoginController extends Controllers
+class LoginController extends BaseController
 {
-    private $model;
+    private LoginModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
         $this->model = $this->cargarModels('LoginModel');
     }
 
     /**
-     * Procesa la solicitud POST del formulario de login
+     * Procesa la solicitud POST del formulario de login.
      */
-    public function login()
+    public function login(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Sanitización de la identidad de ingreso
-            $identity = filter_input(INPUT_POST, 'identity', FILTER_SANITIZE_SPECIAL_CHARS);
+            $identity = trim($_POST['identity'] ?? '');
             $password = $_POST['password'] ?? '';
 
             if (empty($identity) || empty($password)) {
@@ -38,35 +36,57 @@ class LoginController extends Controllers
                 exit;
             }
 
-            // Consulta al modelo optimizado
-            $usuario = $this->model->buscarPorIdentidad($identity);
 
-            if ($usuario && password_verify($password, $usuario['password_hash'])) {
-                
-                // MEDIDA DE SEGURIDAD: Previene la fijación de sesiones maliciosas
+
+            $candidatos = $this->model->buscarCandidatosPorIdentidad($identity);
+
+            if (empty($candidatos)) {
+                $_SESSION['login_error'] = "Usuario, correo o cédula no registrados.";
+                header("Location: " . URL_BASE . "/public/index.php");
+                exit;
+            }
+
+            $usuarioAutenticado = null;
+            $cuentaInactiva = false;
+
+            foreach ($candidatos as $cand) {
+                if (password_verify($password, $cand['password_hash'])) {
+                    $esActivo = ((int)$cand['id_estatus'] === 1 || strtolower($cand['nombre_estatus'] ?? '') === 'activo');
+                    if ($esActivo) {
+                        $usuarioAutenticado = $cand;
+                        break;
+                    } else {
+                        $cuentaInactiva = true;
+                    }
+                }
+            }
+
+            if ($usuarioAutenticado) {
+                // Previene la fijación de sesiones maliciosas
                 session_regenerate_id(true);
 
-                // Mapeo seguro de variables de entorno de sesión
-                $_SESSION['user_id']        = $usuario['id'] ?? null;
-                $_SESSION['user_email']      = $usuario['email_user'];
-                $_SESSION['user_fullname']   = $usuario['primer_nombre'] . ' ' . $usuario['primer_apellido'];
+                $_SESSION['user_id']        = $usuarioAutenticado['id'] ?? null;
+                $_SESSION['user_email']     = $usuarioAutenticado['email_user'];
+                $_SESSION['user_fullname']  = trim(($usuarioAutenticado['primer_nombre'] ?? '') . ' ' . ($usuarioAutenticado['primer_apellido'] ?? ''));
                 
                 $role_map = [
-                    'root' => 'Root',
+                    'root'          => 'Root',
                     'administrador' => 'Administrador',
-                    'entrenador' => 'Entrenador',
-                    'cliente' => 'Cliente'
+                    'entrenador'    => 'Entrenador',
+                    'cliente'       => 'Cliente'
                 ];
-                $raw_role = strtolower(trim($usuario['nombre_rol']));
-                $_SESSION['user_role']       = $role_map[$raw_role] ?? $usuario['nombre_rol'];
-
-                // GUARDAR PERMISOS EN SESIÓN
-                $_SESSION['user_permissions'] = $this->model->obtenerPermisosPorRol($usuario['id_rol']);
+                $rawRole = strtolower(trim($usuarioAutenticado['nombre_rol']));
+                $_SESSION['user_role']        = $role_map[$rawRole] ?? $usuarioAutenticado['nombre_rol'];
+                $_SESSION['user_permissions'] = $this->model->obtenerPermisosPorRol((int)$usuarioAutenticado['id_rol']);
                 
                 header("Location: " . URL_BASE . "/views/home.php");
                 exit;
+            } elseif ($cuentaInactiva) {
+                $_SESSION['login_error'] = "Su cuenta de usuario se encuentra inactiva. Comuníquese con la administración.";
+                header("Location: " . URL_BASE . "/public/index.php");
+                exit;
             } else {
-                $_SESSION['login_error'] = "Usuario, correo o contraseña incorrectos.";
+                $_SESSION['login_error'] = "Contraseña incorrecta.";
                 header("Location: " . URL_BASE . "/public/index.php");
                 exit;
             }
@@ -77,9 +97,9 @@ class LoginController extends Controllers
     }
 
     /**
-     * Destruye de forma segura los vectores de sesión activos
+     * Destruye de forma segura la sesión activa del usuario.
      */
-    public function logout()
+    public function logout(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();

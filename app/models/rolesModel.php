@@ -1,179 +1,131 @@
 <?php
 
 require_once __DIR__ . '/models.php';
-require_once __DIR__ . '/../core/conn.php';
 
-/* =================================================================================
-    * rolesModel.php
-    * Modelo para la gestión de roles en el sistema de administración.
-    * Autor: Alex Madrid
-    * ==============================================================================
-*/
-
-class rolesModel extends Model
+/**
+ * Class RolesModel
+ * Modelo para la administración de roles de usuario en el sistema.
+ * Extiende de BaseModel.
+ */
+class RolesModel extends BaseModel
 {
-    protected $pdo;
-    protected int $id_rol;
-    protected string $nombre_rol;
-    protected string $descripcion;
-    protected array $mensajes = [];
+    protected string $table = 'roles';
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->pdo = $pdo;
     }
 
-    public function obtenerRoles()
+    /**
+     * Obtiene todos los roles registrados en el sistema.
+     */
+    public function obtenerRoles(): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
-            }
-
-            // Removido el prefijo 'administracion.'
-            $stmt = $this->pdo->prepare("SELECT * FROM roles");
-            $stmt->execute();
-            $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+            $sql = "SELECT id, nombre_rol, descripcion FROM roles ORDER BY id ASC";
+            $resultado = $this->selectAll($sql);
             return empty($resultado) ? ["error" => "No hay roles registrados"] : $resultado;
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado para obtener los roles" . $e->getMessage()];
+            return $this->formatError("obtener los roles", $e);
         }
     }
 
-    public function obtenerRolPorNombre(string $nombre_rol)
+    /**
+     * Busca un rol por su nombre único.
+     */
+    public function obtenerRolPorNombre(string $nombre_rol): array
     {
-        $this->mensajes = [
-            'Error de conexion a la base de datos',
-            'No se encontró el rol {nombre_rol} en la base de datos'
-        ];
-
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
+            $rolClean = strtolower(trim($nombre_rol));
+
+            if (!$this->existsWhere('roles', 'nombre_rol = :nombre', [':nombre' => $rolClean])) {
+                return ["error" => "No se encontró el rol en nuestra base de datos"];
             }
 
-            // Removido el prefijo 'administracion.'
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM roles WHERE nombre_rol = :nombre_rol");
-            $checkStmt->bindParam(':nombre_rol', $nombre_rol);
-            $checkStmt->execute();
+            $sql = "SELECT id, nombre_rol, descripcion FROM roles WHERE nombre_rol = :nombre LIMIT 1";
+            $resultado = $this->selectOne($sql, [':nombre' => $rolClean]);
 
-            if ($checkStmt->fetchColumn() == 0) {
-                return ["error" => "No se encontro el rol en nuestra base de datos"];
-            }
-
-            // Removido el prefijo 'administracion.'
-            $stmt = $this->pdo->prepare("SELECT id, nombre_rol, descripcion FROM roles WHERE nombre_rol = :nombre_rol");
-            $stmt->bindParam(':nombre_rol', $nombre_rol);
-            $stmt->execute();
-
-            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
-            return empty($resultado) ? ["error" => "No hay registros con ese nombre de usuario {$nombre_rol}"] : $resultado;
+            return $resultado ?? ["error" => "No hay registros con ese nombre de rol {$nombre_rol}"];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado para obtener el rol" . $e->getMessage()];
+            return $this->formatError("obtener el rol", $e);
         }
     }
 
-    public function crearRol(string $nombre_rol, string $descripcion)
+    /**
+     * Crea un nuevo rol en el sistema.
+     */
+    public function crearRol(string $nombre_rol, string $descripcion): array
     {
-        $this->mensajes = [
-            'Error de conexion a la base de datos',
-            'Error al crear el rol {nombre_rol}',
-            'El nombre del rol ya existe en la base de datos',
-            'El nombre del rol y la descripción son obligatorios',
-            'Rol creado exitosamente'
-        ];
-
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
-            }
+            $rolClean = strtolower(trim($nombre_rol));
 
-            $roles_minusculas = strtolower($nombre_rol);
-
-            // Removido el prefijo 'administracion.'
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM roles WHERE nombre_rol = :nombre_rol");
-            $checkStmt->bindParam(':nombre_rol', $roles_minusculas);
-            $checkStmt->execute();
-            if ($checkStmt->fetchColumn() > 0) {
+            if ($this->existsWhere('roles', 'nombre_rol = :nombre', [':nombre' => $rolClean])) {
                 return ["error" => "El nombre del rol ya existe en la base de datos"];
             }
 
-            // Removido el prefijo 'administracion.'
-            $stmt = $this->pdo->prepare("INSERT INTO roles (nombre_rol, descripcion) VALUES (:nombre_rol, :descripcion)");
-            $stmt->bindParam(':nombre_rol', $roles_minusculas);
-            $stmt->bindParam(':descripcion', $descripcion);
-            $stmt->execute();
+            $sql = "INSERT INTO roles (nombre_rol, descripcion) VALUES (:nombre, :desc)";
+            $this->executeQuery($sql, [
+                ':nombre' => $rolClean,
+                ':desc'   => trim($descripcion)
+            ]);
 
             return [
                 "success" => true,
                 "message" => "Rol creado exitosamente",
-                "data" => [
-                    "nombre_rol" => $nombre_rol,
+                "data"    => [
+                    "id_rol"      => (int)$this->pdo->lastInsertId(),
+                    "nombre_rol"  => $nombre_rol,
                     "descripcion" => $descripcion
                 ]
             ];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado para crear roles" . $e->getMessage()];
+            return $this->formatError("crear rol", $e);
         }
     }
 
-    public function actualizarRol(int $id_rol, string $nombre_rol, string $descripcion)
+    /**
+     * Actualiza la información de un rol existente.
+     */
+    public function actualizarRol(int $id_rol, string $nombre_rol, string $descripcion): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
+            if (!$this->existsWhere('roles', 'id = :id', [':id' => $id_rol])) {
+                return ["error" => "No se encontró el rol especificado en la base de datos"];
             }
 
-            $rol_lower3 = strtolower($nombre_rol);
+            $rolClean = strtolower(trim($nombre_rol));
 
-            // Removido el prefijo 'administracion.'
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM roles WHERE id = :id_rol");
-            $checkStmt->bindParam(':id_rol', $id_rol);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() == 0) {
-                return ["error" => "No se encontro el rol especificado en la base de datos"];
+            if ($this->existsWhere('roles', 'nombre_rol = :nombre AND id != :id', [':nombre' => $rolClean, ':id' => $id_rol])) {
+                return ["error" => "Ya existe otro rol registrado con ese nombre"];
             }
 
-            // Removido el prefijo 'administracion.'. NOW() es compatible con MySQL
-            $stmt = $this->pdo->prepare("UPDATE roles 
-            SET nombre_rol = :nombre_rol, descripcion = :descripcion, act_en = NOW()
-            WHERE id = :id_rol");
-            $stmt->bindParam(':id_rol', $id_rol);
-            $stmt->bindParam(':nombre_rol', $rol_lower3);
-            $stmt->bindParam(':descripcion', $descripcion);
-            $stmt->execute();
-            
+            $sql = "UPDATE roles SET nombre_rol = :nombre, descripcion = :desc, act_en = NOW() WHERE id = :id";
+            $this->executeQuery($sql, [
+                ':nombre' => $rolClean,
+                ':desc'   => trim($descripcion),
+                ':id'     => $id_rol
+            ]);
+
             return ["success" => true, "message" => "Rol actualizado exitosamente"];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado para actualizar el rol" . $e->getMessage()];
+            return $this->formatError("actualizar el rol", $e);
         }
     }
 
-    public function eliminarRol(int $id_rol)
+    /**
+     * Elimina un rol del sistema.
+     */
+    public function eliminarRol(int $id_rol): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
+            if (!$this->existsWhere('roles', 'id = :id', [':id' => $id_rol])) {
+                return ["error" => "No se encontró el rol especificado en la base de datos"];
             }
 
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM roles WHERE id = :id_rol");
-            $checkStmt->bindParam(':id_rol', $id_rol, PDO::PARAM_INT);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() == 0) {
-                return ["error" => "No se encontro el rol especificado en la base de datos"];
-            }
-
-            $stmt = $this->pdo->prepare("DELETE FROM roles WHERE id = :id_rol");
-            $stmt->bindParam(':id_rol', $id_rol, PDO::PARAM_INT);
-            $stmt->execute();
-
+            $this->executeQuery("DELETE FROM roles WHERE id = :id", [':id' => $id_rol]);
             return ["success" => true, "message" => "Rol eliminado exitosamente"];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado al eliminar el rol: " . $e->getMessage()];
+            return $this->formatError("eliminar el rol", $e);
         }
     }
 }

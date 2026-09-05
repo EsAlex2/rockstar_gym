@@ -1,26 +1,27 @@
 <?php
 
-require_once __DIR__ . '/../controllers/controllers.php';
+require_once __DIR__ . '/controllers.php';
 
-/* * personasController.php
- * Autor: Alex Madrid
- * Refactorizado: 15/06/2026
+/**
+ * Class PersonasController
+ * Controlador para la gestión y flujo de datos de personas.
+ * Extiende de BaseController y aplica validaciones estandarizadas,
+ * respuestas unificadas y soporte para el padrón de usuarios.
  */
-
-class PersonasController extends Controllers
+class PersonasController extends BaseController
 {
-    private $personaModel;
+    private PersonasModel $personaModel;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->personaModel = $this->cargarModels('personasModel');
+        $this->personaModel = $this->cargarModels('PersonasModel');
     }
 
     /**
-     * Lista todas las personas registradas
+     * Lista todas las personas registradas junto a su estado y vinculación de usuario.
      */
-    public function listarPersonas()
+    public function listarPersonas(): string
     {
         $data = $this->personaModel->obtenerPersonas();
 
@@ -32,32 +33,52 @@ class PersonasController extends Controllers
     }
 
     /**
-     * Busca una persona por su cédula de identidad
+     * Obtiene los datos de una persona por su ID.
      */
-    public function listarPorCedula(string $cedula)
+    public function obtenerPersona(int $id): string
     {
-        $data = $this->personaModel->obtenerPersonaPorCedula($cedula);
+        if ($id <= 0) {
+            return $this->response(false, "El ID de la persona es inválido");
+        }
+
+        $data = $this->personaModel->obtenerPersonaPorId($id);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
 
-        $resultado = [
-            "id" => $data['id'] ?? null, 
-            "estatus" => $data['estatus'] ?? null,
-            "cedula" => $data['cedula_identidad'] ?? null,
-            "nombre" => ($data['primer_nombre'] ?? '') . ' ' . ($data['primer_apellido'] ?? ''),
-            "genero" => $data['genero'] ?? null,
-            "telefono" => $data['telefono'] ?? null,
-            "correo" => $data['email'] ?? null,
-            "direccion" => $data['direccion_habitacion'] ?? null
-        ];
-
-        return $this->response(true, "Persona Encontrada con Éxito", $resultado);
+        return $this->response(true, "Persona obtenida exitosamente", $data);
     }
 
     /**
-     * Registra una nueva persona utilizando parámetros individuales explicítos
+     * Busca una persona por su cédula de identidad.
+     */
+    public function listarPorCedula(string $cedula): string
+    {
+        $cedulaLimpia = trim($cedula);
+        if ($cedulaLimpia === '') {
+            return $this->response(false, "La cédula de identidad es obligatoria.");
+        }
+
+        $data = $this->personaModel->obtenerPersonaPorCedula($cedulaLimpia);
+
+        if (isset($data['error'])) {
+            return $this->response(false, $data['error']);
+        }
+
+        return $this->response(true, "Persona Encontrada con Éxito", $data);
+    }
+
+    /**
+     * Alias de búsqueda por cédula para compatibilidad con vistas.
+     */
+    public function buscarPorCedula(string $cedula): string
+    {
+        return $this->listarPorCedula($cedula);
+    }
+
+    /**
+     * Registra una nueva persona con validaciones estrictas.
      */
     public function crearNuevaPersona(
         int $id_genero,
@@ -70,43 +91,38 @@ class PersonasController extends Controllers
         string $direccion_habitacion,
         ?string $segundo_nombre = null,
         ?string $segundo_apellido = null
-    ) {
-        // Validación unificada para los campos estrictamente obligatorios
-        if (
-            empty($id_genero) || empty(trim($cedula_identidad)) || empty(trim($primer_nombre)) ||
-            empty(trim($primer_apellido)) || empty(trim($fecha_nacimiento)) ||
-            empty(trim($telefono)) || empty(trim($email)) || empty(trim($direccion_habitacion))
-        ) {
-            return $this->response(false, "Todos los campos son obligatorios");
+    ): string {
+        $validationError = $this->validateRequiredFields([
+            'id_genero'            => $id_genero,
+            'cedula_identidad'     => $cedula_identidad,
+            'primer_nombre'        => $primer_nombre,
+            'primer_apellido'      => $primer_apellido,
+            'fecha_nacimiento'     => $fecha_nacimiento,
+            'telefono'             => $telefono,
+            'email'                => $email,
+            'direccion_habitacion' => $direccion_habitacion
+        ], ['id_genero', 'cedula_identidad', 'primer_nombre', 'primer_apellido', 'fecha_nacimiento', 'telefono', 'email', 'direccion_habitacion']);
+
+        if ($validationError !== null) {
+            return $this->response(false, $validationError['message'] ?? "Todos los campos con asterisco son obligatorios.");
         }
 
-        // Sanitización y formateo de datos recibidos
-        $cedula = trim($cedula_identidad);
-        $nombre1 = trim($primer_nombre);
-        $nombre2 = $segundo_nombre !== null ? trim($segundo_nombre) : '';
-        $apellido1 = trim($primer_apellido);
-        $apellido2 = $segundo_apellido !== null ? trim($segundo_apellido) : '';
-        $fecha_nacimiento_trim = trim($fecha_nacimiento);
-        $email_trim = trim($email);
-        $telefono_trim = trim($telefono);
-        $direccion = trim($direccion_habitacion);
-
-        if (!filter_var($email_trim, FILTER_VALIDATE_EMAIL)) {
-            return $this->response(false, "El formato del correo electrónico no es válido");
+        $cleanEmail = $this->validateAndSanitizeEmail($email);
+        if ($cleanEmail === null) {
+            return $this->response(false, "El formato del correo electrónico ingresado no es válido.");
         }
 
-        // Llamada limpia al modelo
         $request = $this->personaModel->crearPersona(
             $id_genero,
-            $cedula,
-            $nombre1,
-            $nombre2,
-            $apellido1,
-            $apellido2,
-            $fecha_nacimiento_trim,
-            $email_trim,
-            $telefono_trim,
-            $direccion
+            trim($cedula_identidad),
+            trim($primer_nombre),
+            $segundo_nombre !== null ? trim($segundo_nombre) : '',
+            trim($primer_apellido),
+            $segundo_apellido !== null ? trim($segundo_apellido) : '',
+            trim($fecha_nacimiento),
+            trim($telefono),
+            $cleanEmail,
+            trim($direccion_habitacion)
         );
 
         if (isset($request['error'])) {
@@ -117,9 +133,10 @@ class PersonasController extends Controllers
     }
 
     /**
-     * Actualiza los datos de una persona existente
+     * Actualiza los datos de una persona existente.
      */
     public function actualizarDatosPersona(
+        int $id_persona,
         int $id_genero,
         int $id_estatus,
         string $cedula_identidad,
@@ -131,56 +148,79 @@ class PersonasController extends Controllers
         string $direccion_habitacion,
         ?string $segundo_nombre = null,
         ?string $segundo_apellido = null
-    ) {
-        // En tu código original validabas solo 4, pero extraías todos. Mantenemos tu regla estricta de obligatorios:
-        if (empty(trim($cedula_identidad)) || empty(trim($primer_nombre)) || empty(trim($primer_apellido)) || empty(trim($email))) {
-            return $this->response(false, "Todos los campos son obligatorios, faltan campos requeridos");
+    ): string {
+        if ($id_persona <= 0) {
+            return $this->response(false, "El ID de la persona a actualizar es obligatorio.");
         }
 
-        // Sanitización y manejo seguro de opcionales
-        $cedula = trim($cedula_identidad);
-        $nombre1 = trim($primer_nombre);
-        $nombre2 = $segundo_nombre !== null ? trim($segundo_nombre) : '';
-        $apellido1 = trim($primer_apellido);
-        $apellido2 = $segundo_apellido !== null ? trim($segundo_apellido) : '';
-        $email_trim = trim($email);
+        $validationError = $this->validateRequiredFields([
+            'id_genero'            => $id_genero,
+            'id_estatus'           => $id_estatus,
+            'cedula_identidad'     => $cedula_identidad,
+            'primer_nombre'        => $primer_nombre,
+            'primer_apellido'      => $primer_apellido,
+            'fecha_nacimiento'     => $fecha_nacimiento,
+            'telefono'             => $telefono,
+            'email'                => $email,
+            'direccion_habitacion' => $direccion_habitacion
+        ], ['id_genero', 'id_estatus', 'cedula_identidad', 'primer_nombre', 'primer_apellido', 'fecha_nacimiento', 'telefono', 'email', 'direccion_habitacion']);
 
-        // Para los demás campos, si vienen vacíos o no se pasan correctamente, se maneja un fallback seguro
-        $fecha_nacimiento_trim = empty(trim($fecha_nacimiento)) ? '' : trim($fecha_nacimiento);
-        $telefono_trim = empty(trim($telefono)) ? '' : trim($telefono);
-        $direccion = empty(trim($direccion_habitacion)) ? 'Sin especificar' : trim($direccion_habitacion);
-
-        if (!filter_var($email_trim, FILTER_VALIDATE_EMAIL)) {
-            return $this->response(false, "El formato del correo electrónico no es válido");
+        if ($validationError !== null) {
+            return $this->response(false, $validationError['message'] ?? "Faltan campos obligatorios para la actualización.");
         }
 
-        // Llamada al modelo con parámetros limpios
+        $cleanEmail = $this->validateAndSanitizeEmail($email);
+        if ($cleanEmail === null) {
+            return $this->response(false, "El formato del correo electrónico ingresado no es válido.");
+        }
+
         $request = $this->personaModel->actualizarPersona(
+            $id_persona,
             $id_genero,
             $id_estatus,
-            $cedula,
-            $nombre1,
-            $nombre2,
-            $apellido1,
-            $apellido2,
-            $fecha_nacimiento_trim,
-            $email_trim,
-            $telefono_trim,
-            $direccion
+            trim($cedula_identidad),
+            trim($primer_nombre),
+            $segundo_nombre !== null ? trim($segundo_nombre) : '',
+            trim($primer_apellido),
+            $segundo_apellido !== null ? trim($segundo_apellido) : '',
+            trim($fecha_nacimiento),
+            trim($telefono),
+            $cleanEmail,
+            trim($direccion_habitacion)
         );
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
 
-        // Corregido $request['success'] a un manejo dinámico o fallback seguro por consistencia
-        return $this->response(true, $request['success'] ?? $request['message'] ?? "Datos actualizados correctamente", $request['data'] ?? null);
+        return $this->response(true, $request['message'] ?? "Datos actualizados correctamente", $request['data'] ?? null);
     }
 
-    public function eliminarPersona(int $id_persona)
+    /**
+     * Alterna o asigna el estatus de una persona.
+     */
+    public function cambiarEstatus(int $id_persona, int $nuevo_estatus): string
     {
-        if (empty($id_persona) || $id_persona <= 0) {
-            return $this->response(false, "El ID de la persona es obligatorio y debe ser válido");
+        if ($id_persona <= 0 || !in_array($nuevo_estatus, [1, 2])) {
+            return $this->response(false, "Parámetros inválidos para cambiar el estado.");
+        }
+
+        $request = $this->personaModel->cambiarEstatus($id_persona, $nuevo_estatus);
+
+        if (isset($request['error'])) {
+            return $this->response(false, $request['error']);
+        }
+
+        return $this->response(true, $request['message'] ?? "Estado de la persona actualizado exitosamente.");
+    }
+
+    /**
+     * Elimina físicamente o inactiva preventivamente a una persona.
+     */
+    public function eliminarPersona(int $id_persona): string
+    {
+        if ($id_persona <= 0) {
+            return $this->response(false, "El ID de la persona es obligatorio y debe ser válido.");
         }
 
         $request = $this->personaModel->eliminarPersona($id_persona);
@@ -189,10 +229,19 @@ class PersonasController extends Controllers
             return $this->response(false, $request['error']);
         }
 
-        return $this->response(true, $request['message'] ?? "Persona eliminada correctamente");
+        return $this->response(true, $request['message'] ?? "Operación completada exitosamente.", [
+            "inactivated" => $request['inactivated'] ?? false
+        ]);
+    }
+
+    /**
+     * Obtiene los catálogos auxiliares (géneros y estatus).
+     */
+    public function obtenerCatalogos(): string
+    {
+        return $this->response(true, "Catálogos obtenidos", [
+            'generos' => $this->personaModel->obtenerGeneros(),
+            'estatus' => $this->personaModel->obtenerEstatus()
+        ]);
     }
 }
-
-// $personas = new PersonasController($pdo);
-
-// echo $personas->crearNuevaPersona(1, '27391753', 'Alex', 'Madrid', '28/01/1999', '04143770143', 'alexmadrid326@gmail.com', 'jose felix ribas', 'Jonfranc', 'Marin');

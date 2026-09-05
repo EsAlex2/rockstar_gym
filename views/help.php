@@ -47,7 +47,7 @@ $entrenamientosCtrl = new EntrenamientosController($db);
 $permisosCtrl = new permisosController($db);
 $pagosCtrl = new pagosController($db);
 $horariosCtrl = new horariosController($db);
-$entrenamientoHorariosCtrl = new entrenamientoHorarioController($db);
+$entrenamientoHorariosCtrl = new HorarioEntrenamientoController($db);
 
 // Ejecutar verificación automática de vencimientos de mensualidades
 pagosModel::verificarVencimientoMensualidades($db);
@@ -280,7 +280,7 @@ if (!empty($rolesCrudos) && is_array($rolesCrudos)) {
     }
 }
 
-/** --- CARGA DE PERSONAS --- */
+/** --- CARGA DE PERSONAS Y CATÁLOGOS AUXILIARES --- */
 $respuestaPersonas = $personasCtrl->listarPersonas();
 $listaPersonas = [];
 if (is_string($respuestaPersonas)) {
@@ -288,6 +288,18 @@ if (is_string($respuestaPersonas)) {
 }
 if (is_array($respuestaPersonas)) {
     $listaPersonas = $respuestaPersonas['data'] ?? (isset($respuestaPersonas[0]) ? $respuestaPersonas : []);
+}
+
+$listaGeneros = [];
+$listaEstatusPersonas = [];
+try {
+    if ($db) {
+        $listaGeneros = $db->query("SELECT id, descripcion FROM generos ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $listaEstatusPersonas = $db->query("SELECT id, nombre_estatus FROM estatus WHERE id IN (1, 2) ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (PDOException $e) {
+    $listaGeneros = [];
+    $listaEstatusPersonas = [];
 }
 
 /** --- CARGA DE CLIENTES --- */
@@ -428,23 +440,21 @@ if (isset($_GET['action']) && $_GET['action'] === 'buscar_persona' && $_SERVER['
 
 
 
-/**---- RUTAS POST: CREACIÓN DE PERSONAS ------ */
+/**---- RUTAS POST/GET: GESTIÓN INTEGRAL DE PERSONAS ------ */
 if (isset($_GET['action']) && $_GET['action'] === 'crear_persona' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json; charset=utf-8');
 
-    // Captura segura de datos provenientes del formulario
     $id_genero = isset($_POST['id_genero']) ? (int) $_POST['id_genero'] : 0;
     $cedula_identidad = $_POST['cedula_identidad'] ?? '';
     $primer_nombre = $_POST['primer_nombre'] ?? '';
-    $segundo_nombre = !empty(trim($_POST['segundo_nombre'])) ? $_POST['segundo_nombre'] : null;
+    $segundo_nombre = !empty(trim($_POST['segundo_nombre'] ?? '')) ? $_POST['segundo_nombre'] : null;
     $primer_apellido = $_POST['primer_apellido'] ?? '';
-    $segundo_apellido = !empty(trim($_POST['segundo_apellido'])) ? $_POST['segundo_apellido'] : null;
+    $segundo_apellido = !empty(trim($_POST['segundo_apellido'] ?? '')) ? $_POST['segundo_apellido'] : null;
     $fecha_nacimiento = $_POST['fecha_nacimiento'] ?? '';
     $telefono = $_POST['telefono'] ?? '';
     $email = $_POST['email'] ?? '';
     $direccion_habitacion = $_POST['direccion_habitacion'] ?? '';
 
-    // Recordatorio: el controlador ya maneja la lógica de validación e inserción
     $respuesta = $personasCtrl->crearNuevaPersona(
         $id_genero,
         $cedula_identidad,
@@ -457,6 +467,89 @@ if (isset($_GET['action']) && $_GET['action'] === 'crear_persona' && $_SERVER['R
         $segundo_nombre,
         $segundo_apellido
     );
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'actualizar_persona' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_persona = isset($_POST['id_persona']) ? (int) $_POST['id_persona'] : 0;
+    $id_genero = isset($_POST['id_genero']) ? (int) $_POST['id_genero'] : 0;
+    $id_estatus = isset($_POST['id_estatus']) ? (int) $_POST['id_estatus'] : 1;
+    $cedula_identidad = $_POST['cedula_identidad'] ?? '';
+    $primer_nombre = $_POST['primer_nombre'] ?? '';
+    $segundo_nombre = !empty(trim($_POST['segundo_nombre'] ?? '')) ? $_POST['segundo_nombre'] : null;
+    $primer_apellido = $_POST['primer_apellido'] ?? '';
+    $segundo_apellido = !empty(trim($_POST['segundo_apellido'] ?? '')) ? $_POST['segundo_apellido'] : null;
+    $fecha_nacimiento = $_POST['fecha_nacimiento'] ?? '';
+    $telefono = $_POST['telefono'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $direccion_habitacion = $_POST['direccion_habitacion'] ?? '';
+
+    $respuesta = $personasCtrl->actualizarDatosPersona(
+        $id_persona,
+        $id_genero,
+        $id_estatus,
+        $cedula_identidad,
+        $primer_nombre,
+        $primer_apellido,
+        $fecha_nacimiento,
+        $email,
+        $telefono,
+        $direccion_habitacion,
+        $segundo_nombre,
+        $segundo_apellido
+    );
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'eliminar_persona' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_persona = isset($_POST['id_persona']) ? (int) $_POST['id_persona'] : 0;
+    $respuesta = $personasCtrl->eliminarPersona($id_persona);
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'cambiar_estatus_persona' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_persona = isset($_POST['id_persona']) ? (int) $_POST['id_persona'] : 0;
+    $nuevo_estatus = isset($_POST['nuevo_id_estatus']) ? (int) $_POST['nuevo_id_estatus'] : 1;
+
+    $respuesta = $personasCtrl->cambiarEstatus($id_persona, $nuevo_estatus);
+
+    if (is_string($respuesta)) {
+        $respuesta = json_decode($respuesta, true);
+    }
+
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'obtener_persona') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id_persona = isset($_REQUEST['id_persona']) ? (int) $_REQUEST['id_persona'] : 0;
+    $respuesta = $personasCtrl->obtenerPersona($id_persona);
 
     if (is_string($respuesta)) {
         $respuesta = json_decode($respuesta, true);

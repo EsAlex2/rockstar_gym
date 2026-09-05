@@ -1,31 +1,29 @@
 <?php
 
-require_once __DIR__ . '/../controllers/controllers.php';
+require_once __DIR__ . '/controllers.php';
 
-/* * rolesController.php
- * Autor: Alex Madrid
- * Refactorizado: 15/06/2026
- * */
-
-class rolesController extends Controllers
+/**
+ * Class RolesController
+ * Controlador para la gestión de roles de usuarios y niveles de acceso.
+ * Extiende de BaseController.
+ */
+class RolesController extends BaseController
 {
-    private $model;
+    private RolesModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        // Cargamos el modelo correspondiente
-        $this->model = $this->cargarModels('rolesModel');
+        $this->model = $this->cargarModels('RolesModel');
     }
 
     /**
-     * Lista todos los roles registrados en el sistema
+     * Lista todos los roles registrados.
      */
-    public function listarRoles()
+    public function listarRoles(): string
     {
         $data = $this->model->obtenerRoles();
 
-        // Si el modelo retorna un error o la estructura no es la esperada
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
@@ -34,17 +32,21 @@ class rolesController extends Controllers
     }
 
     /**
-     * Busca la información de un rol específico mediante su nombre único
+     * Busca un rol por su nombre.
      */
-    public function listarRolPorNombre(string $nombre)
+    public function listarRolPorNombre(string $nombre): string
     {
-        $data = $this->model->obtenerRolPorNombre($nombre);
+        $nombreLimpio = trim($nombre);
+        if ($nombreLimpio === '') {
+            return $this->response(false, "El nombre del rol es requerido.");
+        }
+
+        $data = $this->model->obtenerRolPorNombre($nombreLimpio);
 
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
 
-        // Mapeo estructurado siguiendo la consistencia de tus respuestas de usuario
         $response = [
             "id"          => $data['id'] ?? null,
             "nombre_rol"  => $data['nombre_rol'] ?? null,
@@ -55,20 +57,18 @@ class rolesController extends Controllers
     }
 
     /**
-     * Registra un nuevo rol con parámetros individuales e independientes
+     * Registra un nuevo rol.
      */
-    public function crearNuevoRol(string $nombre_rol, string $descripcion)
+    public function crearNuevoRol(string $nombre_rol, string $descripcion): string
     {
-        // Validación individualizada y sanitización temprana
-        if (empty(trim($nombre_rol)) || empty(trim($descripcion))) {
+        $nombreLimpio = trim($nombre_rol);
+        $descLimpia   = trim($descripcion);
+
+        if ($nombreLimpio === '' || $descLimpia === '') {
             return $this->response(false, "Todos los campos son obligatorios");
         }
 
-        $nombre_rol  = trim($nombre_rol);
-        $descripcion = trim($descripcion);
-
-        // Llamar al modelo
-        $request = $this->model->crearRol($nombre_rol, $descripcion);
+        $request = $this->model->crearRol($nombreLimpio, $descLimpia);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
@@ -78,20 +78,18 @@ class rolesController extends Controllers
     }
 
     /**
-     * Actualiza un rol existente con parámetros separados y tipados
+     * Actualiza un rol existente.
      */
-    public function actualizarDatosRol(int $id_rol, string $nombre_rol, string $descripcion)
+    public function actualizarDatosRol(int $id_rol, string $nombre_rol, string $descripcion): string
     {
-        // Se valida que el ID sea correcto y que las cadenas no estén vacías
-        if (empty($id_rol) || empty(trim($nombre_rol)) || empty(trim($descripcion))) {
-            return $this->response(false, "Todos los campos son obligatorios");
+        $nombreLimpio = trim($nombre_rol);
+        $descLimpia   = trim($descripcion);
+
+        if ($id_rol <= 0 || $nombreLimpio === '' || $descLimpia === '') {
+            return $this->response(false, "Todos los campos son obligatorios y el ID debe ser válido");
         }
 
-        $nombre_rol  = trim($nombre_rol);
-        $descripcion = trim($descripcion);
-
-        // Enviar la solicitud de actualización al modelo
-        $request = $this->model->actualizarRol($id_rol, $nombre_rol, $descripcion);
+        $request = $this->model->actualizarRol($id_rol, $nombreLimpio, $descLimpia);
 
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
@@ -100,9 +98,12 @@ class rolesController extends Controllers
         return $this->response(true, $request['message'] ?? "Rol actualizado exitosamente", $request['data'] ?? null);
     }
 
-    public function eliminarRol(int $id_rol)
+    /**
+     * Elimina un rol por su ID.
+     */
+    public function eliminarRol(int $id_rol): string
     {
-        if (empty($id_rol) || $id_rol <= 0) {
+        if ($id_rol <= 0) {
             return $this->response(false, "El ID del rol es obligatorio y debe ser válido");
         }
 

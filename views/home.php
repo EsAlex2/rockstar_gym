@@ -150,7 +150,7 @@ if ($db) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - <?= SITE_NAME ?></title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <?php require_once __DIR__ . '/../components/header_theme.php'; ?>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex">
@@ -178,28 +178,28 @@ if ($db) {
                 <!-- ============================================== -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <!-- CLIENTES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="clientes.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Miembros / Clientes</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_clientes'] ?? 0 ?></p>
                         <p class="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">Activos: <?= $contadores['activos_clientes'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- ENTRENADORES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="entrenadores.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Instructores / Entrenadores</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_entrenadores'] ?? 0 ?></p>
                         <p class="text-xs text-purple-600 dark:text-purple-400 mt-2 font-medium">Activos: <?= $contadores['activos_entrenadores'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- ENTRENAMIENTOS CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="entrenamientos.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Clases / Entrenamientos</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_entrenamientos'] ?? 0 ?></p>
                         <p class="text-xs text-orange-600 dark:text-orange-400 mt-2 font-medium">Programadas Hoy: <?= $contadores['clases_hoy'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- PLANES CARD -->
                     <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
@@ -210,82 +210,100 @@ if ($db) {
                     </div>
 
                     <!-- INGRESOS TOTALES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="pagos.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ingresos del Mes</p>
                         <p class="text-3xl font-black mt-3 text-emerald-500"><?= number_format($contadores['ingresos_mes'] ?? 0.00, 2, ',', '.') ?> Bs.</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">Total histórico: <?= number_format($contadores['total_ingresos'] ?? 0.00, 2, ',', '.') ?> Bs.</p>
-                    </div>
+                    </a>
 
                     <!-- PAGOS PENDIENTES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="pagos.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-amber-300 dark:hover:border-amber-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pagos por Aprobar</p>
                         <p class="text-3xl font-black mt-3 <?= ($contadores['pagos_pendientes'] ?? 0) > 0 ? 'text-amber-500 animate-pulse' : 'text-gray-900 dark:text-white' ?>"><?= $contadores['pagos_pendientes'] ?? 0 ?></p>
                         <p class="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">Acción administrativa requerida</p>
-                    </div>
+                    </a>
 
                     <!-- USUARIOS CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="usuarios.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-teal-300 dark:hover:border-teal-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-teal-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Usuarios del Sistema</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_usuarios'] ?? 0 ?></p>
                         <p class="text-xs text-teal-600 dark:text-teal-400 mt-2 font-medium">Operativos Activos: <?= $contadores['activos_usuarios'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- ROLES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="roles.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-rose-300 dark:hover:border-rose-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Roles Registrados</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_roles'] ?? 0 ?></p>
                         <p class="text-xs text-rose-600 dark:text-rose-400 mt-2 font-medium">Perfiles de seguridad</p>
-                    </div>
+                    </a>
 
                     <!-- PERMISOS CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="permisos.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-sky-300 dark:hover:border-sky-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Permisos Totales</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_permisos'] ?? 0 ?></p>
                         <p class="text-xs text-sky-600 dark:text-sky-400 mt-2 font-medium">Claves de acceso y acciones</p>
-                    </div>
+                    </a>
 
                     <!-- PERSONAS CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="personas.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Personas Registradas</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_personas'] ?? 0 ?></p>
-                        <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium">Fichas de identificación</p>
-                    </div>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium flex items-center gap-1">
+                            <span>Gestionar personas</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </p>
+                    </a>
                 </div>
 
             <?php elseif ($user_role === 'Administrador'): ?>
                 <!-- ============================================== -->
-                <!-- STATS FOR ADMINISTRATOR ROLE (5 CARDS)         -->
+                <!-- STATS FOR ADMINISTRATOR ROLE (6 CARDS)         -->
                 <!-- ============================================== -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                    <!-- PERSONAS CARD -->
+                    <a href="personas.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500/40 transition-all cursor-pointer block">
+                        <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Personas</p>
+                        <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_personas'] ?? 0 ?></p>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium flex items-center gap-1">
+                            <span>Gestionar personas</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </p>
+                    </a>
+
                     <!-- CLIENTES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="clientes.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Miembros / Clientes</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_clientes'] ?? 0 ?></p>
                         <p class="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">Activos: <?= $contadores['activos_clientes'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- ENTRENADORES CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="entrenadores.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Entrenadores</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_entrenadores'] ?? 0 ?></p>
                         <p class="text-xs text-purple-600 dark:text-purple-400 mt-2 font-medium">Activos: <?= $contadores['activos_entrenadores'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- ENTRENAMIENTOS CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="entrenamientos.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-20 h-20 bg-orange-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Entrenamientos</p>
                         <p class="text-3xl font-black mt-3 text-gray-900 dark:text-white"><?= $contadores['total_entrenamientos'] ?? 0 ?></p>
                         <p class="text-xs text-orange-600 dark:text-orange-400 mt-2 font-medium">Clases de Hoy: <?= $contadores['clases_hoy'] ?? 0 ?></p>
-                    </div>
+                    </a>
 
                     <!-- PLANES CARD -->
                     <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
@@ -296,12 +314,12 @@ if ($db) {
                     </div>
 
                     <!-- PAGOS CARD -->
-                    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                    <a href="pagos.php" class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/40 transition-all cursor-pointer block">
                         <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-bl-full transition-transform group-hover:scale-110"></div>
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ingresos del Mes</p>
                         <p class="text-2xl font-black mt-3 text-emerald-500"><?= number_format($contadores['ingresos_mes'] ?? 0.00, 2, ',', '.') ?> Bs.</p>
                         <p class="text-[10px] text-amber-600 dark:text-amber-400 mt-2 font-semibold">Pendientes: <?= $contadores['pagos_pendientes'] ?? 0 ?></p>
-                    </div>
+                    </a>
                 </div>
 
             <?php elseif ($user_role === 'Entrenador'): ?>

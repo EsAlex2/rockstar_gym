@@ -1,30 +1,29 @@
 <?php
-require_once __DIR__ . '/../controllers/controllers.php';
 
-/* * clientesController.php
- * Autor: Alex Madrid
- * Fecha: 14/06/2026
+require_once __DIR__ . '/controllers.php';
+
+/**
+ * Class ClientesController
+ * Controlador para la gestión de clientes y miembros del gimnasio.
+ * Extiende de BaseController.
  */
-
-class ClientesController extends Controllers
+class ClientesController extends BaseController
 {
-    private $model;
+    private ClientesModel $model;
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        // Cargamos el modelo correspondiente a la gestión de clientes
         $this->model = $this->cargarModels('ClientesModel');
     }
 
     /**
-     * Lista todos los clientes registrados con su información básica de la base de datos.
+     * Lista todos los clientes registrados.
      */
-    public function listarClientes()
+    public function listarClientes(): string
     {
         $data = $this->model->listarClientes();
 
-        // Manejo de errores devueltos por el modelo (ej: "No hay usuarios registrados" o fallos de PDO)
         if (isset($data['error'])) {
             return $this->response(false, $data['error']);
         }
@@ -33,22 +32,16 @@ class ClientesController extends Controllers
     }
 
     /**
-     * Registra un nuevo cliente y genera automáticamente su código de acceso.
-     * * @param array $datos Debe contener ['id_persona']
+     * Registra un cliente a partir del ID de persona.
      */
-    public function crearClientes(int $persona)
+    public function crearClientes(int $persona): string
     {
-        // Validamos que el ID de la persona sea mayor a 0
         if ($persona <= 0) {
             return $this->response(false, "El ID de la persona es obligatorio y debe ser válido.");
         }
-        
-        $id_persona = (int)$persona;
 
-        // Llamar al método del modelo encargado de la inserción y lógica de código de acceso
-        $request = $this->model->crearClientes($id_persona);
+        $request = $this->model->crearClientes($persona);
 
-        // El modelo siempre retorna un array con 'success' o 'error'
         if (isset($request['error'])) {
             return $this->response(false, $request['error']);
         }
@@ -56,9 +49,12 @@ class ClientesController extends Controllers
         return $this->response(true, $request['message'], $request['data'] ?? null);
     }
 
-    public function actualizarCliente(int $id_cliente, int $id_estatus)
+    /**
+     * Actualiza el estado de un cliente.
+     */
+    public function actualizarCliente(int $id_cliente, int $id_estatus): string
     {
-        if (empty($id_cliente) || $id_cliente <= 0 || empty($id_estatus) || $id_estatus <= 0) {
+        if ($id_cliente <= 0 || $id_estatus <= 0) {
             return $this->response(false, "El ID del cliente y del estatus son obligatorios");
         }
 
@@ -71,9 +67,12 @@ class ClientesController extends Controllers
         return $this->response(true, $request['message'] ?? "Cliente actualizado correctamente");
     }
 
-    public function eliminarCliente(int $id_cliente)
+    /**
+     * Elimina el registro de un cliente.
+     */
+    public function eliminarCliente(int $id_cliente): string
     {
-        if (empty($id_cliente) || $id_cliente <= 0) {
+        if ($id_cliente <= 0) {
             return $this->response(false, "El ID del cliente es obligatorio y debe ser válido");
         }
 
@@ -86,6 +85,9 @@ class ClientesController extends Controllers
         return $this->response(true, $request['message'] ?? "Cliente eliminado correctamente");
     }
 
+    /**
+     * Crea un cliente y su registro personal en un solo paso.
+     */
     public function crearClienteDirecto(
         int $id_genero,
         string $cedula_identidad,
@@ -97,24 +99,38 @@ class ClientesController extends Controllers
         string $telefono,
         string $email,
         string $direccion_habitacion
-    ) {
-        if (empty($id_genero) || empty(trim($cedula_identidad)) || empty(trim($primer_nombre)) || 
-            empty(trim($primer_apellido)) || empty(trim($fecha_nacimiento)) || 
-            empty(trim($telefono)) || empty(trim($email)) || empty(trim($direccion_habitacion))) {
+    ): string {
+        $validationError = $this->validateRequiredFields([
+            'id_genero'            => $id_genero,
+            'cedula_identidad'     => $cedula_identidad,
+            'primer_nombre'        => $primer_nombre,
+            'primer_apellido'      => $primer_apellido,
+            'fecha_nacimiento'     => $fecha_nacimiento,
+            'telefono'             => $telefono,
+            'email'                => $email,
+            'direccion_habitacion' => $direccion_habitacion
+        ], ['id_genero', 'cedula_identidad', 'primer_nombre', 'primer_apellido', 'fecha_nacimiento', 'telefono', 'email', 'direccion_habitacion']);
+
+        if ($validationError !== null) {
             return $this->response(false, "Todos los campos obligatorios (*) son requeridos.");
+        }
+
+        $cleanEmail = $this->validateAndSanitizeEmail($email);
+        if ($cleanEmail === null) {
+            return $this->response(false, "El formato del correo electrónico no es válido.");
         }
 
         $request = $this->model->crearClienteDirecto(
             $id_genero,
-            $cedula_identidad,
-            $primer_nombre,
+            trim($cedula_identidad),
+            trim($primer_nombre),
             $segundo_nombre,
-            $primer_apellido,
+            trim($primer_apellido),
             $segundo_apellido,
-            $fecha_nacimiento,
-            $telefono,
-            $email,
-            $direccion_habitacion
+            trim($fecha_nacimiento),
+            trim($telefono),
+            $cleanEmail,
+            trim($direccion_habitacion)
         );
 
         if (isset($request['error'])) {
@@ -124,6 +140,9 @@ class ClientesController extends Controllers
         return $this->response(true, $request['message'] ?? "Cliente registrado exitosamente", $request['data'] ?? null);
     }
 
+    /**
+     * Actualiza integralmente los datos del cliente y de la persona.
+     */
     public function actualizarClienteCompleto(
         int $id_cliente,
         int $id_estatus,
@@ -137,26 +156,43 @@ class ClientesController extends Controllers
         string $telefono,
         string $email,
         string $direccion_habitacion
-    ) {
-        if (empty($id_cliente) || empty($id_estatus) || empty($id_genero) || empty(trim($cedula_identidad)) || 
-            empty(trim($primer_nombre)) || empty(trim($primer_apellido)) || empty(trim($fecha_nacimiento)) || 
-            empty(trim($telefono)) || empty(trim($email)) || empty(trim($direccion_habitacion))) {
+    ): string {
+        if ($id_cliente <= 0 || $id_estatus <= 0 || $id_genero <= 0) {
+            return $this->response(false, "Parámetros de identificación inválidos.");
+        }
+
+        $validationError = $this->validateRequiredFields([
+            'cedula_identidad'     => $cedula_identidad,
+            'primer_nombre'        => $primer_nombre,
+            'primer_apellido'      => $primer_apellido,
+            'fecha_nacimiento'     => $fecha_nacimiento,
+            'telefono'             => $telefono,
+            'email'                => $email,
+            'direccion_habitacion' => $direccion_habitacion
+        ], ['cedula_identidad', 'primer_nombre', 'primer_apellido', 'fecha_nacimiento', 'telefono', 'email', 'direccion_habitacion']);
+
+        if ($validationError !== null) {
             return $this->response(false, "Todos los campos obligatorios (*) son requeridos.");
+        }
+
+        $cleanEmail = $this->validateAndSanitizeEmail($email);
+        if ($cleanEmail === null) {
+            return $this->response(false, "El formato del correo electrónico no es válido.");
         }
 
         $request = $this->model->actualizarClienteCompleto(
             $id_cliente,
             $id_estatus,
             $id_genero,
-            $cedula_identidad,
-            $primer_nombre,
+            trim($cedula_identidad),
+            trim($primer_nombre),
             $segundo_nombre,
-            $primer_apellido,
+            trim($primer_apellido),
             $segundo_apellido,
-            $fecha_nacimiento,
-            $telefono,
-            $email,
-            $direccion_habitacion
+            trim($fecha_nacimiento),
+            trim($telefono),
+            $cleanEmail,
+            trim($direccion_habitacion)
         );
 
         if (isset($request['error'])) {
@@ -166,8 +202,3 @@ class ClientesController extends Controllers
         return $this->response(true, $request['message'] ?? "Cliente actualizado exitosamente");
     }
 }
-
-// $pruebas = new ClientesController($pdo);
-
-// echo $pruebas->listarClientes();
-

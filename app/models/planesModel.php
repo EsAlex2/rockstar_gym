@@ -1,211 +1,154 @@
 <?php
+
 require_once __DIR__ . '/models.php';
-require_once __DIR__ . '/../core/conn.php';
 
-/* =================================================================================
- * planModel.php
- * Modelo para la gestión de los planes del gimnasio en el sistema de administración.
- * Autor: Alex Madrid
- * ==============================================================================
+/**
+ * Class PlanesModel
+ * Modelo para la gestión de los planes y tarifas del gimnasio.
+ * Extiende de BaseModel.
  */
-
-class planModel extends Model
+class PlanesModel extends BaseModel
 {
-    protected $pdo;
+    protected string $table = 'planes';
 
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->pdo = $pdo;
     }
 
     /**
-     * Registra un nuevo plan en el sistema.
+     * Registra un nuevo plan de membresía.
      */
-    public function crearPlan(string $nombre_plan, string $descripcion, float $precio, int $duracion_dias)
+    public function crearPlan(string $nombre_plan, string $descripcion, float $precio, int $duracion_dias): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
+            $mayusNombre = strtoupper(trim($nombre_plan));
+
+            if ($this->existsWhere('planes', 'nombre_plan = :nombre', [':nombre' => $mayusNombre])) {
+                return ["error" => "Ya existe un plan registrado con el nombre: {$nombre_plan}"];
             }
 
-            $mayusNombre = strtoupper($nombre_plan);
+            $sql = "INSERT INTO planes (id_estatus, nombre_plan, descripcion, precio, duracion_dias) 
+                    VALUES (1, :nombre, :descripcion, :precio, :duracion)";
 
-            // Removido el prefijo 'administracion.'
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE nombre_plan = :nombre");
-            $checkDuplicate->bindParam(':nombre', $mayusNombre, PDO::PARAM_STR);
-            $checkDuplicate->execute();
-
-            if ($checkDuplicate->fetchColumn() > 0) {
-                return ["error" => "Ya existe un plan registrado con el nombre: " . $nombre_plan];
-            }
-
-            // Removido el prefijo 'administracion.'
-            $query = $this->pdo->prepare("INSERT INTO planes (id_estatus, nombre_plan, descripcion, precio, duracion_dias) VALUES (:id_estatus, :nombre, :descripcion, :precio, :duracion)");
-            $estatus_default = 1;
-
-            $query->bindParam(':id_estatus', $estatus_default, PDO::PARAM_INT);
-            $query->bindParam(':nombre', $mayusNombre, PDO::PARAM_STR);
-            $query->bindParam(':descripcion', $descripcion, PDO::PARAM_STR);
-            $query->bindParam(':precio', $precio);
-            $query->bindParam(':duracion', $duracion_dias, PDO::PARAM_INT);
-
-            $query->execute();
+            $this->executeQuery($sql, [
+                ':nombre'      => $mayusNombre,
+                ':descripcion' => trim($descripcion),
+                ':precio'      => $precio,
+                ':duracion'    => $duracion_dias
+            ]);
 
             return [
                 "success" => true,
                 "message" => "Plan registrado exitosamente",
-                "data" => [
-                    "nombre_plan" => $mayusNombre,
-                    "precio" => $precio,
+                "data"    => [
+                    "id_plan"       => (int)$this->pdo->lastInsertId(),
+                    "nombre_plan"   => $mayusNombre,
+                    "precio"        => $precio,
                     "duracion_dias" => $duracion_dias
                 ]
             ];
         } catch (PDOException $e) {
-            return ["error" => "Error al crear el plan: " . $e->getMessage()];
+            return $this->formatError("crear el plan", $e);
         }
     }
 
     /**
-     * Lista todos los planes registrados en la base de datos.
+     * Lista todos los planes registrados en el catálogo.
      */
-    public function listarPlanes()
+    public function listarPlanes(): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            // Removido el prefijo 'administracion.'
-            $sql = $this->pdo->prepare("SELECT id, id_estatus, nombre_plan, descripcion, precio, duracion_dias FROM planes");
-            $sql->execute();
-            $resultado = $sql->fetchAll(PDO::FETCH_ASSOC);
-
+            $sql = "SELECT id, id_estatus, nombre_plan, descripcion, precio, duracion_dias FROM planes ORDER BY id ASC";
+            $resultado = $this->selectAll($sql);
             return empty($resultado) ? ["error" => "No hay planes registrados"] : $resultado;
         } catch (PDOException $e) {
-            return ["error" => "Error al obtener los planes: " . $e->getMessage()];
+            return $this->formatError("obtener los planes", $e);
         }
     }
 
     /**
-     * Busca un plan específico por su ID trayendo el nombre del estatus mediante un INNER JOIN.
+     * Busca un plan por su nombre.
      */
-    public function buscarPlanPorNombre(string $nombre_plan)
+    public function buscarPlanPorNombre(string $nombre_plan): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
+            $sql = "SELECT a.id, b.nombre_estatus AS Estatus, a.nombre_plan AS Plan, a.descripcion AS Descripcion, a.precio AS Precio, a.duracion_dias AS Duracion
+                    FROM planes a
+                    INNER JOIN estatus b ON a.id_estatus = b.id
+                    WHERE a.nombre_plan = :nombre
+                    LIMIT 1";
 
-            // 1era Validación: Verificar si el plan existe en la tabla (Removido prefijo)
-            $checkPlan = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE nombre_plan = :nombre_plan");
-            $checkPlan->bindParam(':nombre_plan', $nombre_plan, PDO::PARAM_STR);
-            $checkPlan->execute();
+            $resultado = $this->selectOne($sql, [':nombre' => strtoupper(trim($nombre_plan))]);
 
-            if ($checkPlan->fetchColumn() == 0) {
+            if (!$resultado) {
                 return ["error" => "El plan solicitado no existe en la base de datos"];
             }
 
-            // Removido prefijo de esquema 'administracion.' de 'planes' y 'estatus'
-            $buscarInfo = $this->pdo->prepare("SELECT a.id, b.nombre_estatus AS Estatus, a.nombre_plan AS Plan, a.descripcion AS Descripcion, a.precio AS Precio, a.duracion_dias AS Duracion
-                FROM planes a
-                INNER JOIN estatus b ON a.id_estatus = b.id
-                WHERE a.nombre_plan = :nombre_plan");
-
-            $buscarInfo->bindParam(':nombre_plan', $nombre_plan, PDO::PARAM_STR);
-            $buscarInfo->execute();
-
-            $resultado = $buscarInfo->fetch(PDO::FETCH_ASSOC);
-
             return [$resultado];
         } catch (PDOException $e) {
-            return ["error" => "Error al buscar el plan: " . $e->getMessage()];
+            return $this->formatError("buscar el plan", $e);
         }
     }
 
     /**
-     * Actualiza los datos de un plan existente.
+     * Actualiza la información de un plan.
      */
-    public function actualizarPlan(int $id_plan, string $nombre_plan, string $descripcion, float $precio, int $duracion_dias, int $id_estatus)
+    public function actualizarPlan(int $id_plan, string $nombre_plan, string $descripcion, float $precio, int $duracion_dias, int $id_estatus): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            // Removido prefijo
-            $checkExist = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE id = :id");
-            $checkExist->bindParam(':id', $id_plan, PDO::PARAM_INT);
-            $checkExist->execute();
-
-            if ($checkExist->fetchColumn() == 0) {
+            if (!$this->existsWhere('planes', 'id = :id', [':id' => $id_plan])) {
                 return ["error" => "El plan que intenta actualizar no existe en la base de datos"];
             }
 
-            $mayusNombre = strtoupper($nombre_plan);
+            $mayusNombre = strtoupper(trim($nombre_plan));
 
-            // Removido prefijo
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE nombre_plan = :nombre AND id != :id");
-            $checkDuplicate->bindParam(':nombre', $mayusNombre, PDO::PARAM_STR);
-            $checkDuplicate->bindParam(':id', $id_plan, PDO::PARAM_INT);
-            $checkDuplicate->execute();
-
-            if ($checkDuplicate->fetchColumn() > 0) {
-                return ["error" => "No se pudo actualizar. Ya existe otro plan registrado con el nombre: " . $nombre_plan];
+            if ($this->existsWhere('planes', 'nombre_plan = :nombre AND id != :id', [':nombre' => $mayusNombre, ':id' => $id_plan])) {
+                return ["error" => "No se pudo actualizar. Ya existe otro plan registrado con el nombre: {$nombre_plan}"];
             }
 
-            // Removido prefijo
-            $query = $this->pdo->prepare("UPDATE planes 
-            SET id_estatus = :id_estatus, nombre_plan = :nombre, descripcion = :descripcion, precio = :precio, duracion_dias = :duracion 
-            WHERE id = :id");
+            $sql = "UPDATE planes 
+                    SET id_estatus = :estatus, nombre_plan = :nombre, descripcion = :descripcion, precio = :precio, duracion_dias = :duracion 
+                    WHERE id = :id";
 
-            $query->bindParam(':id', $id_plan, PDO::PARAM_INT);
-            $query->bindParam(':id_estatus', $id_estatus, PDO::PARAM_INT);
-            $query->bindParam(':nombre', $mayusNombre, PDO::PARAM_STR);
-            $query->bindParam(':descripcion', $descripcion, PDO::PARAM_STR);
-            $query->bindParam(':precio', $precio);
-            $query->bindParam(':duracion', $duracion_dias, PDO::PARAM_INT);
-
-            $query->execute();
+            $this->executeQuery($sql, [
+                ':estatus'     => $id_estatus,
+                ':nombre'      => $mayusNombre,
+                ':descripcion' => trim($descripcion),
+                ':precio'      => $precio,
+                ':duracion'    => $duracion_dias,
+                ':id'          => $id_plan
+            ]);
 
             return [
                 "success" => true,
                 "message" => "Plan actualizado exitosamente",
-                "data" => [
-                    "id_plan" => $id_plan,
+                "data"    => [
+                    "id_plan"     => $id_plan,
                     "nombre_plan" => $mayusNombre,
-                    "precio" => $precio,
-                    "id_estatus" => $id_estatus
+                    "precio"      => $precio,
+                    "id_estatus"  => $id_estatus
                 ]
             ];
-
         } catch (PDOException $e) {
-            return ["error" => "Error al actualizar el plan: " . $e->getMessage()];
+            return $this->formatError("actualizar el plan", $e);
         }
     }
 
-    public function eliminarPlan(int $id_plan)
+    /**
+     * Elimina un plan por su ID.
+     */
+    public function eliminarPlan(int $id_plan): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexión a la base de datos"];
-            }
-
-            $checkExist = $this->pdo->prepare("SELECT COUNT(*) FROM planes WHERE id = :id");
-            $checkExist->bindParam(':id', $id_plan, PDO::PARAM_INT);
-            $checkExist->execute();
-
-            if ($checkExist->fetchColumn() == 0) {
+            if (!$this->existsWhere('planes', 'id = :id', [':id' => $id_plan])) {
                 return ["error" => "El plan que intenta eliminar no existe en la base de datos"];
             }
 
-            $query = $this->pdo->prepare("DELETE FROM planes WHERE id = :id");
-            $query->bindParam(':id', $id_plan, PDO::PARAM_INT);
-            $query->execute();
-
+            $this->executeQuery("DELETE FROM planes WHERE id = :id", [':id' => $id_plan]);
             return ["success" => true, "message" => "Plan eliminado exitosamente"];
         } catch (PDOException $e) {
-            return ["error" => "Error al eliminar el plan: " . $e->getMessage()];
+            return $this->formatError("eliminar el plan", $e);
         }
     }
 }

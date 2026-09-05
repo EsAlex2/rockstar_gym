@@ -1,171 +1,134 @@
 <?php
 
 require_once __DIR__ . '/models.php';
-require_once __DIR__ . '/../core/conn.php';
 
-/* =================================================================================
- * permisosModel.php
- * Modelo para la gestión de permisos en el sistema de administración.
- * Autor: Alex Madrid
- * ==============================================================================
+/**
+ * Class PermisosModel
+ * Modelo para la gestión del catálogo de permisos y privilegios del sistema.
+ * Extiende de BaseModel.
  */
-
-class permisosModel extends Model
+class PermisosModel extends BaseModel
 {
-    protected $pdo;
-    protected int $id_permiso;
-    protected string $nombre_permiso;
-    protected string $descripcion;
+    protected string $table = 'permisos';
 
-    protected array $mensajes = [];
-
-    public function __construct($pdo)
+    public function __construct(?PDO $pdo = null)
     {
         parent::__construct($pdo);
-        $this->pdo = $pdo;
     }
 
-    public function obtenerPermisos()
+    /**
+     * Obtiene la lista completa de permisos registrados.
+     */
+    public function obtenerPermisos(): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
-            }
-
-            // Removido el prefijo 'administracion.'
-            $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM permisos");
-            $stmt->execute();
-            $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            return empty($resultado) ? ["error" => "No hay usuarios registrados"] : $resultado;
+            $sql = "SELECT id, nombre_permiso, descripcion FROM permisos ORDER BY id ASC";
+            $resultado = $this->selectAll($sql);
+            return empty($resultado) ? ["error" => "No hay permisos registrados"] : $resultado;
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado para obtener los permisos registrados" . $e->getMessage()];
+            return $this->formatError("obtener los permisos registrados", $e);
         }
     }
 
-    public function obtenerPermisoPorNombre(string $nombre_permiso)
+    /**
+     * Busca un permiso por su identificador de nombre único.
+     */
+    public function obtenerPermisoPorNombre(string $nombre_permiso): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
+            $permisoClean = strtolower(trim($nombre_permiso));
+
+            if (!$this->existsWhere('permisos', 'nombre_permiso = :nombre', [':nombre' => $permisoClean])) {
+                return ["error" => "No se encontró registro de ese permiso en nuestra base de datos"];
             }
 
-            // Removido el prefijo 'administracion.'
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE nombre_permiso = :nombre_permiso");
-            $checkStmt->bindParam(':nombre_permiso', $nombre_permiso);
-            $checkStmt->execute();
+            $sql = "SELECT id, nombre_permiso, descripcion FROM permisos WHERE nombre_permiso = :nombre LIMIT 1";
+            $resultado = $this->selectOne($sql, [':nombre' => $permisoClean]);
 
-            if ($checkStmt->fetchColumn() == 0) {
-                return ["error" => "No se encontro registro de ese permiso en nuestra base de datos"];
-            }
-
-            $stmt = $this->pdo->prepare("SELECT id, nombre_permiso, descripcion FROM permisos WHERE nombre_permiso = :nombre_permiso");
-            $stmt->bindParam(':nombre_permiso', $nombre_permiso);
-            $stmt->execute();
             return [
                 "success" => true,
-                "message" => "Pemiso encontrado exitosamente",
-                "data" => [
-                    "nombre_permiso" => $nombre_permiso
+                "message" => "Permiso encontrado exitosamente",
+                "data"    => $resultado
+            ];
+        } catch (PDOException $e) {
+            return $this->formatError("obtener el permiso {$nombre_permiso}", $e);
+        }
+    }
+
+    /**
+     * Registra un nuevo permiso en el catálogo.
+     */
+    public function crearPermiso(string $nombre_permiso, string $descripcion): array
+    {
+        try {
+            $permisoClean = strtolower(trim($nombre_permiso));
+
+            if ($this->existsWhere('permisos', 'nombre_permiso = :nombre', [':nombre' => $permisoClean])) {
+                return ["error" => "El permiso: {$permisoClean} ya existe en la base de datos"];
+            }
+
+            $sql = "INSERT INTO permisos (nombre_permiso, descripcion) VALUES (:nombre, :desc)";
+            $this->executeQuery($sql, [
+                ':nombre' => $permisoClean,
+                ':desc'   => trim($descripcion)
+            ]);
+
+            return [
+                "success" => true,
+                "message" => "Permiso Creado Exitosamente",
+                "data"    => [
+                    "id_permiso"     => (int)$this->pdo->lastInsertId(),
+                    "nombre_permiso" => $permisoClean
                 ]
             ];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado para obtener el permiso {$nombre_permiso}" . $e->getMessage()];
+            return $this->formatError("crear los permisos", $e);
         }
     }
 
-    public function crearPermiso(string $nombre_permiso, string $descripcion)
-    {   
-        $permiso = strtolower($nombre_permiso);
-
-        try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
-            }
-
-            // Removido el prefijo 'administracion.'
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE nombre_permiso = :nombre_permiso");
-            $checkStmt->bindParam(':nombre_permiso', $permiso);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() > 0) {
-                return ["error" => "El permiso: $permiso ya existe en la base de datos"];
-            }
-
-            $stmt = $this->pdo->prepare("INSERT INTO permisos (nombre_permiso, descripcion) VALUES (:nombre_permiso, :descripcion)");
-            $stmt->bindParam(':nombre_permiso', $permiso);
-            $stmt->bindParam(':descripcion', $descripcion);
-            $stmt->execute();
-            return [
-                "success" => true,
-                "message" => "Permiso Creado Exitosamente"
-            ];
-        } catch (PDOException $e) {
-            return ["error" => "Error inesperado para crear los permisos" . $e->getMessage()];
-        }
-    }
-
-    public function actualizarPermiso(int $id_permiso, string $nombre_permiso, string $descripcion)
+    /**
+     * Actualiza la información de un permiso.
+     */
+    public function actualizarPermiso(int $id_permiso, string $nombre_permiso, string $descripcion): array
     {
-        $permiso = strtolower(trim($nombre_permiso));
-        $descripcion = trim($descripcion);
-
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
-            }
-
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE id = :id");
-            $checkStmt->bindParam(':id', $id_permiso, PDO::PARAM_INT);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() == 0) {
+            if (!$this->existsWhere('permisos', 'id = :id', [':id' => $id_permiso])) {
                 return ["error" => "No se encontró el permiso especificado en la base de datos"];
             }
 
-            $checkDuplicate = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE nombre_permiso = :nombre AND id != :id");
-            $checkDuplicate->bindParam(':nombre', $permiso);
-            $checkDuplicate->bindParam(':id', $id_permiso, PDO::PARAM_INT);
-            $checkDuplicate->execute();
+            $permisoClean = strtolower(trim($nombre_permiso));
 
-            if ($checkDuplicate->fetchColumn() > 0) {
-                return ["error" => "Ya existe otro permiso registrado con el nombre: " . $nombre_permiso];
+            if ($this->existsWhere('permisos', 'nombre_permiso = :nombre AND id != :id', [':nombre' => $permisoClean, ':id' => $id_permiso])) {
+                return ["error" => "Ya existe otro permiso registrado con el nombre: {$nombre_permiso}"];
             }
 
-            $stmt = $this->pdo->prepare("UPDATE permisos SET nombre_permiso = :nombre_permiso, descripcion = :descripcion WHERE id = :id");
-            $stmt->bindParam(':id', $id_permiso, PDO::PARAM_INT);
-            $stmt->bindParam(':nombre_permiso', $permiso);
-            $stmt->bindParam(':descripcion', $descripcion);
-            $stmt->execute();
+            $sql = "UPDATE permisos SET nombre_permiso = :nombre, descripcion = :desc WHERE id = :id";
+            $this->executeQuery($sql, [
+                ':nombre' => $permisoClean,
+                ':desc'   => trim($descripcion),
+                ':id'     => $id_permiso
+            ]);
 
             return ["success" => true, "message" => "Permiso actualizado exitosamente"];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado al actualizar el permiso: " . $e->getMessage()];
+            return $this->formatError("actualizar el permiso", $e);
         }
     }
 
-    public function eliminarPermiso(int $id_permiso)
+    /**
+     * Elimina un permiso del catálogo.
+     */
+    public function eliminarPermiso(int $id_permiso): array
     {
         try {
-            if (!$this->pdo) {
-                return ["error" => "Error de conexion a la base de datos"];
-            }
-
-            $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM permisos WHERE id = :id");
-            $checkStmt->bindParam(':id', $id_permiso, PDO::PARAM_INT);
-            $checkStmt->execute();
-
-            if ($checkStmt->fetchColumn() == 0) {
+            if (!$this->existsWhere('permisos', 'id = :id', [':id' => $id_permiso])) {
                 return ["error" => "No se encontró el permiso especificado en la base de datos"];
             }
 
-            $stmt = $this->pdo->prepare("DELETE FROM permisos WHERE id = :id");
-            $stmt->bindParam(':id', $id_permiso, PDO::PARAM_INT);
-            $stmt->execute();
-
+            $this->executeQuery("DELETE FROM permisos WHERE id = :id", [':id' => $id_permiso]);
             return ["success" => true, "message" => "Permiso eliminado exitosamente"];
         } catch (PDOException $e) {
-            return ["error" => "Error inesperado al eliminar el permiso: " . $e->getMessage()];
+            return $this->formatError("eliminar el permiso", $e);
         }
     }
 }
