@@ -10,7 +10,7 @@ class SeederClientes extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         // Clientes correspondientes a las personas creadas en SeederPersonas
         // Se calculan los códigos de acceso usando la lógica del modelo:

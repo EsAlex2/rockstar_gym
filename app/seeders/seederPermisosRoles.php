@@ -10,7 +10,7 @@ class SeederPermisosRoles extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         try {
             $this->pdo->beginTransaction();

@@ -10,7 +10,7 @@ class SeederClientesPlanes extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         // Array de asignaciones simuladas de planes a clientes
         // Nota: id_estatus = 1 representa 'Activo' en tu sistema

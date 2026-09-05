@@ -10,7 +10,7 @@ class SeederPermisos extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         $permisosList = [
             // --- MÓDULO. SEGURIDAD Y CONFIGURACIÓN (Root / Admin) ---

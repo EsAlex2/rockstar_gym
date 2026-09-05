@@ -10,7 +10,7 @@ class SeederBancos extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         $bancosList = [
             // --- BANCA PÚBLICA Y ESTATAL ---

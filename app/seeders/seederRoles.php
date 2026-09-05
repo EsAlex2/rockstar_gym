@@ -10,7 +10,7 @@ require_once __DIR__ . '/../core/conn.php';
             parent::__construct($pdo);
         }
 
-        public function runSeeder()
+        public function runSeeder(): void
         {
             $rolesList = [
                 ['nombre_rol' => 'Root', 'descripcion' => 'Acceso total a todas las funciones del sistema, incluyendo la gestión de roles, usuarios, planes, pagos y reportes.'],

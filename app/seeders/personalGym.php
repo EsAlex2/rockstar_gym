@@ -10,7 +10,7 @@ class SeederPersonas extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         $data = [
             [

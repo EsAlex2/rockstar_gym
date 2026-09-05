@@ -10,7 +10,7 @@ class SeederPagos extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         // Array de datos simulados basados en la estructura de tu base de datos
         $pagosList = [

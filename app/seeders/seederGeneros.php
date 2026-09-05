@@ -10,7 +10,7 @@ class seederGeneros extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         $generosList = [
             ['descripcion' => 'Masculino'],

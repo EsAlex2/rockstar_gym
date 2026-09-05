@@ -10,7 +10,7 @@ class SeederPlanes extends Seeder
         parent::__construct($pdo);
     }
 
-    public function runSeeder()
+    public function runSeeder(): void
     {
         // Array de planes basados exactamente en la estructura de tu tabla y lógica de help.php
         $planesList = [
